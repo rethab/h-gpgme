@@ -11,6 +11,7 @@ module Crypto.Gpgme (
 
     -- encryption
     , encrypt
+    , decrypt
 
       -- types
     , Ctx
