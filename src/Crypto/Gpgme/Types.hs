@@ -36,3 +36,15 @@ alwaysTrust = Flag c'GPGME_ENCRYPT_ALWAYS_TRUST
 
 noFlag :: Flag
 noFlag = Flag 0
+
+data DecryptError =
+      NoData  -- no data to decrypt
+    | Failed  -- not a valid cipher
+    | BadPass -- passphrase for secret was wrong
+    | Unknown -- something else went wrong
+
+toDecryptError :: C'gpgme_err_code_t -> DecryptError
+toDecryptError 58  = NoData
+toDecryptError 152 = Failed
+toDecryptError 11  = BadPass
+toDecryptError _   = Unknown

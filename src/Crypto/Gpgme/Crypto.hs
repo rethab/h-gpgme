@@ -46,5 +46,28 @@ encrypt (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
         then return (Left (collectFprs recPtr))
         else return (Right (collectResult resultBuf))
 
-decrypt :: Ctx -> BS.ByteString -> IO (Either String BS.ByteString)
-decrypt = undefined
+decrypt :: Ctx -> BS.ByteString -> IO (Either DecryptError BS.ByteString)
+decrypt (Ctx ctxPtr _) cipher = do
+    -- init buffer with cipher
+    cipherBufPtr <- malloc
+    BS.useAsCString cipher $ \bs -> do
+        let copyData = 1 -- gpgme shall copy data, as bytestring will free it
+        let cipherlen = fromIntegral (BS.length cipher)
+        ret <- c'gpgme_data_new_from_mem cipherBufPtr bs cipherlen copyData
+        check_error ret
+    cipherBuf <- peek cipherBufPtr
+
+    -- init buffer for result
+    resultBufPtr <- malloc
+    check_error =<< c'gpgme_data_new resultBufPtr
+    resultBuf <- peek resultBufPtr
+
+    ctx <- peek ctxPtr
+
+    -- decrypt
+    errcode <- c'gpgme_op_decrypt ctx cipherBuf resultBuf
+
+    if errcode /= noError
+        then return (Left  (toDecryptError errcode))
+        else return (Right (collectResult resultBuf))
+            -- todo freeying

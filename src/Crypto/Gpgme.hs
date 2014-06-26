@@ -29,6 +29,8 @@ module Crypto.Gpgme (
     , alwaysTrust
     , noFlag
 
+    , DecryptError(..)
+
 ) where
 
 
