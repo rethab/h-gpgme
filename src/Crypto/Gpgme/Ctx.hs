@@ -1,15 +1,10 @@
-module Crypto.Gpgme.Ctx (
-
-      newCtx
-    , freeCtx
-    , withCtx
-
-) where
+module Crypto.Gpgme.Ctx where
 
 import Bindings.Gpgme
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
+import System.Posix.IO (fdWrite)
 
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
@@ -55,3 +50,21 @@ withCtx homedir localeStr prot f = do
     freeCtx ctx
     return res
 
+setPassphrase :: Ctx -> String -> IO ()
+setPassphrase (Ctx ctxPtr _) passphrase =
+    do ctx <- peek ctxPtr
+       passcb <- wrap (passphrase_cb passphrase)
+       c'gpgme_set_passphrase_cb ctx passcb nullPtr
+
+passphrase_cb :: String -> Ptr () -> CString -> CString -> CInt -> CInt -> IO C'gpgme_error_t
+passphrase_cb passphrase _ uid_hint passphrase_info prev_was_bad fd =
+    do peekCString uid_hint >>= putStrLn
+       peekCString passphrase_info >>= putStrLn
+       putStrLn ("Prev was bad: " ++ show prev_was_bad)
+       _ <- fdWrite (fromIntegral fd) (passphrase ++ "\n")
+       return 0
+
+-- from: http://www.haskell.org/haskellwiki/GHC/Using_the_FFI#Callbacks_into_Haskell_from_foreign_code
+foreign import ccall "wrapper"
+  wrap :: (Ptr () -> CString -> CString -> CInt -> CInt -> IO C'gpgme_error_t)
+          -> IO (FunPtr (Ptr () -> CString -> CString -> CInt -> CInt -> IO C'gpgme_error_t))
