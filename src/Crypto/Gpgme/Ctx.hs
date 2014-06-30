@@ -50,6 +50,16 @@ withCtx homedir localeStr prot f = do
     freeCtx ctx
     return res
 
+withPWCtx :: String -> String -> String -> Protocol -> (Ctx -> IO a) -> IO a
+withPWCtx pw homedir localeStr prot f = do
+    ctx <- newCtx homedir localeStr prot
+    putStrLn "Before set passphras"
+    setPassphrase ctx pw
+    putStrLn "after set passphras"
+    res <- f ctx
+    freeCtx ctx
+    return res
+
 setPassphrase :: Ctx -> String -> IO ()
 setPassphrase (Ctx ctxPtr _) passphrase =
     do ctx <- peek ctxPtr

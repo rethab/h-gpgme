@@ -3,6 +3,7 @@ module Crypto.Gpgme (
       newCtx
     , freeCtx
     , withCtx
+    , withPWCtx
     
     -- keys
     , getKey

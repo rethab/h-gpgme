@@ -10,8 +10,12 @@ instance Arbitrary BS.ByteString where
 justAndRight :: Maybe (Either a b) -> Bool
 justAndRight = either (const False) (const True) . maybe (Left undefined) id
 
-fromJustAndRight :: Maybe (Either a b) -> b
+fromJustAndRight :: (Show a) => Maybe (Either a b) -> b
 fromJustAndRight = fromRight . fromJust
 
-fromRight :: Either a b -> b
-fromRight = either (error "not right") id
+fromRight :: (Show a) => Either a b -> b
+fromRight = either (\e -> error $ "not right: " ++ show e) id
+
+isLeft :: Either a b -> Bool
+isLeft (Right _) = False
+isLeft (Left _)  = True

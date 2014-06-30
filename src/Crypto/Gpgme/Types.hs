@@ -41,10 +41,11 @@ data DecryptError =
       NoData  -- no data to decrypt
     | Failed  -- not a valid cipher
     | BadPass -- passphrase for secret was wrong
-    | Unknown -- something else went wrong
+    | Unknown Int -- something else went wrong
+    deriving (Eq, Show)
 
 toDecryptError :: C'gpgme_err_code_t -> DecryptError
 toDecryptError 58  = NoData
 toDecryptError 152 = Failed
 toDecryptError 11  = BadPass
-toDecryptError _   = Unknown
+toDecryptError x   = Unknown (fromIntegral x)

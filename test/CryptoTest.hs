@@ -4,6 +4,7 @@ import qualified Data.ByteString as BS
 import Data.Maybe
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
+import Test.HUnit hiding (assert)
 import Test.QuickCheck.Monadic
 import Test.QuickCheck
 
@@ -11,6 +12,7 @@ import Crypto.Gpgme
 import TestUtil
 
 tests = [ testProperty "bob_encrypt_for_alice_decrypt" bob_encrypt_for_alice_decrypt
+        , testCase "decrypt_garbage" decrypt_garbage
         ]
 
 bob_encrypt_for_alice_decrypt plain =
@@ -26,7 +28,12 @@ bob_encrypt_for_alice_decrypt plain =
                            encrypt bCtx [aPubKey] noFlag plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+               dec <- withPWCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
                        decrypt aCtx (fromJustAndRight enc)
 
                return $ fromRight dec
+
+decrypt_garbage = do
+    val <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+              decrypt bCtx (BS.pack [1,2,3,4,5,6])
+    isLeft val @? "should be left " ++ show val
