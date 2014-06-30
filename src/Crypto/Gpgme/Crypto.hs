@@ -20,22 +20,24 @@ encrypt (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
         let copyData = 1 -- gpgme shall copy data, as bytestring will free it
         let plainlen = fromIntegral (BS.length plain)
         ret <- c'gpgme_data_new_from_mem plainBufPtr bs plainlen copyData
-        check_error ret
+        check_error "data_new_from_mem" ret
     plainBuf <- peek plainBufPtr
 
     -- init buffer for result
     resultBufPtr <- malloc
-    check_error =<< c'gpgme_data_new resultBufPtr
+    check_error "data_new" =<< c'gpgme_data_new resultBufPtr
     resultBuf <- peek resultBufPtr
 
     -- null terminated array of recipients
-    keys <- mapM (peek . unKey) recPtrs
-    recArray <- newArray (keys ++ [nullPtr])
+    recArray <- if null recPtrs
+                    then return nullPtr
+                    else do keys <- mapM (peek . unKey) recPtrs
+                            newArray (keys ++ [nullPtr])
 
     ctx <- peek ctxPtr
 
     -- encrypt
-    check_error =<< c'gpgme_op_encrypt ctx recArray flag plainBuf resultBuf
+    check_error "op_encrypt" =<< c'gpgme_op_encrypt ctx recArray flag plainBuf resultBuf
 
     -- check whether all keys could be used for encryption
     encResPtr <- c'gpgme_op_encrypt_result ctx
@@ -54,12 +56,12 @@ decrypt (Ctx ctxPtr _) cipher = do
         let copyData = 1 -- gpgme shall copy data, as bytestring will free it
         let cipherlen = fromIntegral (BS.length cipher)
         ret <- c'gpgme_data_new_from_mem cipherBufPtr bs cipherlen copyData
-        check_error ret
+        check_error "data_new_from_mem" ret
     cipherBuf <- peek cipherBufPtr
 
     -- init buffer for result
     resultBufPtr <- malloc
-    check_error =<< c'gpgme_data_new resultBufPtr
+    check_error "data_new" =<< c'gpgme_data_new resultBufPtr
     resultBuf <- peek resultBufPtr
 
     ctx <- peek ctxPtr

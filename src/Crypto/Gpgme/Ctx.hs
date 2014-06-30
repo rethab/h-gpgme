@@ -18,19 +18,19 @@ newCtx homedir localeStr (Protocol protocol) =
 
        -- create context
        ctxPtr <- malloc 
-       check_error =<< c'gpgme_new ctxPtr
+       check_error "gpgme_new" =<< c'gpgme_new ctxPtr
 
        ctx <- peek ctxPtr
 
        -- set locale
        locale <- newCString localeStr
-       check_error =<< c'gpgme_set_locale ctx lcCtype locale
+       check_error "set_locale" =<< c'gpgme_set_locale ctx lcCtype locale
 
        -- set protocol in ctx
-       check_error =<< c'gpgme_set_protocol ctx (fromIntegral protocol)
+       check_error "set_protocol" =<< c'gpgme_set_protocol ctx (fromIntegral protocol)
 
        -- set homedir in ctx
-       check_error =<< c'gpgme_ctx_set_engine_info ctx
+       check_error "set_engine_info" =<< c'gpgme_ctx_set_engine_info ctx
                             (fromIntegral protocol) nullPtr homedirPtr
 
        return (Ctx ctxPtr version)
