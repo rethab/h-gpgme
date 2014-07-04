@@ -12,6 +12,8 @@ import Crypto.Gpgme
 import TestUtil
 
 tests = [ testProperty "bob_encrypt_for_alice_decrypt" bob_encrypt_for_alice_decrypt
+        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
+            bob_encrypt_sign_for_alice_decrypt_verify
         , testCase "decrypt_garbage" decrypt_garbage
 
         {- very annoying to run, as passphrase callbacks don't work:
@@ -34,6 +36,24 @@ bob_encrypt_for_alice_decrypt plain =
                -- decrypt
                dec <- withPWCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
                        decrypt aCtx (fromJustAndRight enc)
+
+               return $ fromRight dec
+
+bob_encrypt_sign_for_alice_decrypt_verify plain =
+    not (BS.null plain) ==> monadicIO $ do
+        dec <- run encr_and_decr
+        assert $ dec == plain
+  where encr_and_decr =
+            do let alice_pub_fpr = "EAACEB8A"
+
+               -- encrypt
+               enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+                       withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
+                           encryptSign bCtx [aPubKey] noFlag plain
+
+               -- decrypt
+               dec <- withPWCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
+                       decryptVerify aCtx (fromJustAndRight enc)
 
                return $ fromRight dec
 
