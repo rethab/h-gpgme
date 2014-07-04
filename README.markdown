@@ -16,3 +16,5 @@ enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
 dec <- withCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
          decrypt aCtx (fromJustAndRight enc)
 ```
+
+See the test folder for more examples
