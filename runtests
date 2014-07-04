@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# with this, we will only be asked
+# for a passphrase once
+eval $(gpg-agent --daemon)
+
 cabal clean
 cabal configure --enable-tests
 cabal build
