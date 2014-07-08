@@ -54,11 +54,10 @@ bob_encrypt_for_alice_decrypt_short plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- encryptFor "test/bob" alice_pub_fpr plain
+               enc <- encrypt' "test/bob" alice_pub_fpr plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
-                       decrypt aCtx (fromRight enc)
+               dec <- decrypt' "test/alice" (fromRight enc)
 
                return $ fromRight dec
 
@@ -88,11 +87,10 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- encryptForSign "test/bob" alice_pub_fpr plain
+               enc <- encryptSign' "test/bob" alice_pub_fpr plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
-                       decryptVerify aCtx (fromRight enc)
+               dec <- decryptVerify' "test/alice" (fromRight enc)
 
                return $ fromRight dec
 

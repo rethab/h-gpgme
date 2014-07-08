@@ -2,10 +2,12 @@ module Crypto.Gpgme.Crypto (
 
       encrypt
     , encryptSign
-    , encryptFor
-    , encryptForSign
+    , encrypt'
+    , encryptSign'
     , decrypt
+    , decrypt'
     , decryptVerify
+    , decryptVerify'
 
 ) where
 
@@ -22,16 +24,16 @@ import Crypto.Gpgme.Types
 locale :: String
 locale = "C"
 
-encryptFor :: String -> Fpr -> Plain -> IO (Either String Encrypted)
-encryptFor = encryptForIntern encrypt
+encrypt' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
+encrypt' = encryptIntern' encrypt
 
-encryptForSign :: String -> Fpr -> Plain -> IO (Either String Encrypted)
-encryptForSign = encryptForIntern encryptSign
+encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
+encryptSign' = encryptIntern' encryptSign
 
-encryptForIntern :: (Ctx -> [Key] -> Flag -> Plain
+encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
-encryptForIntern encrFun gpgDir recFpr plain = do
+encryptIntern' encrFun gpgDir recFpr plain = do
     withCtx gpgDir locale openPGP $ \ctx ->
         do mbRes <- withKey ctx recFpr noSecret $ \pubKey ->
                         encrFun ctx [pubKey] noFlag plain
@@ -98,7 +100,19 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
 
     return res
 
+decrypt' :: String -> Encrypted -> IO (Either DecryptError Plain)
+decrypt' = decryptInternal' decrypt
 
+decryptVerify' :: String -> Encrypted -> IO (Either DecryptError Plain)
+decryptVerify' = decryptInternal' decryptVerify
+
+decryptInternal' :: (Ctx -> Encrypted -> IO (Either DecryptError Plain))
+                  -> String
+                  -> Encrypted
+                  -> IO (Either DecryptError Plain)
+decryptInternal' decrFun gpgDir cipher =
+    withCtx gpgDir locale openPGP $ \ctx ->
+        decrFun ctx cipher
 
 decrypt :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decrypt = decryptIntern c'gpgme_op_decrypt

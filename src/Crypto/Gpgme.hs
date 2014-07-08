@@ -13,10 +13,12 @@ module Crypto.Gpgme (
     -- encryption
     , encrypt
     , encryptSign
-    , encryptFor
-    , encryptForSign
+    , encrypt'
+    , encryptSign'
     , decrypt
+    , decrypt'
     , decryptVerify
+    , decryptVerify'
 
       -- types
     , Ctx
