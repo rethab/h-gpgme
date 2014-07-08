@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests) where
 
 import qualified Data.ByteString as BS
@@ -11,10 +12,16 @@ import Test.QuickCheck
 import Crypto.Gpgme
 import TestUtil
 
-tests = [ testProperty "bob_encrypt_for_alice_decrypt" bob_encrypt_for_alice_decrypt
+tests = [ testProperty "bob_encrypt_for_alice_decrypt"
+            bob_encrypt_for_alice_decrypt
         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
             bob_encrypt_sign_for_alice_decrypt_verify
-        , testCase "decrypt_garbage" decrypt_garbage
+        , testCase "decrypt_garbage"
+            decrypt_garbage
+         , testProperty "bob_encrypt_for_alice_decrypt_short"
+             bob_encrypt_for_alice_decrypt_short
+         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
+             bob_encrypt_sign_for_alice_decrypt_verify_short
 
         {- very annoying to run, as passphrase callbacks don't work:
         , testProperty "bob_encrypt_symmetrically" bob_encrypt_symmetrically
@@ -34,8 +41,24 @@ bob_encrypt_for_alice_decrypt plain =
                            encrypt bCtx [aPubKey] noFlag plain
 
                -- decrypt
-               dec <- withPWCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
+               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
                        decrypt aCtx (fromJustAndRight enc)
+
+               return $ fromRight dec
+
+bob_encrypt_for_alice_decrypt_short plain =
+    not (BS.null plain) ==> monadicIO $ do
+        dec <- run encr_and_decr
+        assert $ dec == plain
+  where encr_and_decr =
+            do let alice_pub_fpr = "EAACEB8A"
+
+               -- encrypt
+               enc <- encryptFor "test/bob" alice_pub_fpr plain
+
+               -- decrypt
+               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+                       decrypt aCtx (fromRight enc)
 
                return $ fromRight dec
 
@@ -52,8 +75,24 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
                            encryptSign bCtx [aPubKey] noFlag plain
 
                -- decrypt
-               dec <- withPWCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
+               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
                        decryptVerify aCtx (fromJustAndRight enc)
+
+               return $ fromRight dec
+
+bob_encrypt_sign_for_alice_decrypt_verify_short plain =
+    not (BS.null plain) ==> monadicIO $ do
+        dec <- run encr_and_decr
+        assert $ dec == plain
+  where encr_and_decr =
+            do let alice_pub_fpr = "EAACEB8A"
+
+               -- encrypt
+               enc <- encryptForSign "test/bob" alice_pub_fpr plain
+
+               -- decrypt
+               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+                       decryptVerify aCtx (fromRight enc)
 
                return $ fromRight dec
 

@@ -13,6 +13,8 @@ module Crypto.Gpgme (
     -- encryption
     , encrypt
     , encryptSign
+    , encryptFor
+    , encryptForSign
     , decrypt
     , decryptVerify
 
@@ -41,4 +43,3 @@ import Crypto.Gpgme.Ctx
 import Crypto.Gpgme.Crypto
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Key
-

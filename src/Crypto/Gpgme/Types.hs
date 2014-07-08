@@ -1,6 +1,7 @@
 module Crypto.Gpgme.Types where
 
 import Bindings.Gpgme
+import qualified Data.ByteString as BS
 import Foreign.C.Types (CInt, CUInt)
 import Foreign
 
@@ -14,6 +15,10 @@ data Ctx = Ctx {
       _ctx :: Ptr C'gpgme_ctx_t
     , _version :: String
 }
+
+type Fpr = BS.ByteString
+type Plain = BS.ByteString
+type Encrypted = BS.ByteString
 
 -- fingerprint, reason
 type InvalidKey = (String, Int)

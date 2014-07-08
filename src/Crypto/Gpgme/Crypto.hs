@@ -2,6 +2,8 @@ module Crypto.Gpgme.Crypto (
 
       encrypt
     , encryptSign
+    , encryptFor
+    , encryptForSign
     , decrypt
     , decryptVerify
 
@@ -12,13 +14,36 @@ import qualified Data.ByteString as BS
 import Foreign
 import GHC.Ptr
 
-import Crypto.Gpgme.Types
+import Crypto.Gpgme.Ctx
 import Crypto.Gpgme.Internal
+import Crypto.Gpgme.Key
+import Crypto.Gpgme.Types
 
-encrypt :: Ctx -> [Key] -> Flag -> BS.ByteString -> IO (Either [InvalidKey] BS.ByteString)
+locale :: String
+locale = "C"
+
+encryptFor :: String -> Fpr -> Plain -> IO (Either String Encrypted)
+encryptFor = encryptForIntern encrypt
+
+encryptForSign :: String -> Fpr -> Plain -> IO (Either String Encrypted)
+encryptForSign = encryptForIntern encryptSign
+
+encryptForIntern :: (Ctx -> [Key] -> Flag -> Plain
+                        -> IO (Either [InvalidKey] Encrypted)
+                    ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
+encryptForIntern encrFun gpgDir recFpr plain = do
+    withCtx gpgDir locale openPGP $ \ctx ->
+        do mbRes <- withKey ctx recFpr noSecret $ \pubKey ->
+                        encrFun ctx [pubKey] noFlag plain
+           return $ mapErr mbRes
+  where mapErr Nothing = Left $ "no such key: " ++ show recFpr
+        mapErr (Just (Left err))  = Left (show err)
+        mapErr (Just (Right res)) = Right res
+
+encrypt :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted)
 encrypt = encryptIntern c'gpgme_op_encrypt
 
-encryptSign :: Ctx -> [Key] -> Flag -> BS.ByteString -> IO (Either [InvalidKey] BS.ByteString) 
+encryptSign :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted) 
 encryptSign = encryptIntern c'gpgme_op_encrypt_sign
 
 encryptIntern :: (C'gpgme_ctx_t
@@ -31,8 +56,8 @@ encryptIntern :: (C'gpgme_ctx_t
                   -> Ctx
                   -> [Key]
                   -> Flag
-                  -> BS.ByteString
-                  -> IO (Either [InvalidKey] BS.ByteString) 
+                  -> Plain
+                  -> IO (Either [InvalidKey] Encrypted) 
 encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
@@ -75,10 +100,10 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
 
 
 
-decrypt :: Ctx -> BS.ByteString -> IO (Either DecryptError BS.ByteString)
+decrypt :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decrypt = decryptIntern c'gpgme_op_decrypt
 
-decryptVerify :: Ctx -> BS.ByteString -> IO (Either DecryptError BS.ByteString)
+decryptVerify :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decryptVerify = decryptIntern c'gpgme_op_decrypt_verify
 
 
@@ -88,8 +113,8 @@ decryptIntern :: (C'gpgme_ctx_t
                     -> IO C'gpgme_error_t
                   )
                   -> Ctx
-                  -> BS.ByteString
-                  -> IO (Either DecryptError BS.ByteString)
+                  -> Encrypted
+                  -> IO (Either DecryptError Plain)
 decryptIntern dec_op (Ctx ctxPtr _) cipher = do
     -- init buffer with cipher
     cipherBufPtr <- malloc
