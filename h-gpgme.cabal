@@ -15,6 +15,11 @@ library
   ghc-options:         -Wall
                        -fno-warn-orphans
   exposed-modules:     Crypto.Gpgme
+  other-modules:       Crypto.Gpgme.Key
+                     , Crypto.Gpgme.Ctx
+                     , Crypto.Gpgme.Crypto
+                     , Crypto.Gpgme.Internal
+                     , Crypto.Gpgme.Types
   build-depends:       base           ==4.*
                      , bindings-gpgme >=0.1 && <0.2
                      , bytestring     == 0.10.*
