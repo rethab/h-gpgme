@@ -1,4 +1,4 @@
-module TestMain where
+module Main where
 
 import Test.Framework (defaultMain, testGroup)
 
