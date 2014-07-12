@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests) where
 
+import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
 import Data.Maybe
 import Test.Framework.Providers.HUnit
