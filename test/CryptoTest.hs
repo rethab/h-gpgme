@@ -94,22 +94,22 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
 
                return $ fromRight dec
 
-bob_encrypt_symmetrically plain =
-    not (BS.null plain) ==> monadicIO $ do
-        dec <- run encr_and_decr
-        assert $ dec == plain
-  where encr_and_decr =
-            do let symmetric_key = "foo"
-
-               -- encrypt
-               enc <- withPWCtx symmetric_key "test/bob" "C" openPGP $ \bCtx ->
-                           encrypt bCtx [] noFlag plain
-
-               -- decrypt
-               dec <- withPWCtx symmetric_key "test/alice" "C" openPGP $ \aCtx ->
-                       decrypt aCtx (fromRight enc)
-
-               return $ fromRight dec
+-- bob_encrypt_symmetrically plain =
+--     not (BS.null plain) ==> monadicIO $ do
+--         dec <- run encr_and_decr
+--         assert $ dec == plain
+--   where encr_and_decr =
+--             do let symmetric_key = "foo"
+-- 
+--                -- encrypt
+--                enc <- withPWCtx symmetric_key "test/bob" "C" openPGP $ \bCtx ->
+--                            encrypt bCtx [] noFlag plain
+-- 
+--                -- decrypt
+--                dec <- withPWCtx symmetric_key "test/alice" "C" openPGP $ \aCtx ->
+--                        decrypt aCtx (fromRight enc)
+-- 
+--                return $ fromRight dec
 
 decrypt_garbage = do
     val <- withCtx "test/bob" "C" openPGP $ \bCtx ->
