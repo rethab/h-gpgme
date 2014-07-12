@@ -1,16 +1,53 @@
+
+-- |
+-- Module      : Crypto.Gpgme
+-- Copyright   : (c) Reto Hablützel 2014
+-- License     : MIT
+--
+-- Maintainer  : rethab@rethab.ch
+-- Stability   : experimental
+-- Portability : untested
+--
+-- High Level Binding for GnuPG Made Easy (gpgme)
+-- 
+-- Most of these functions are a one-to-one translation
+-- from GnuPG API with some Haskell idiomatics to make
+-- the API more convenient.
+--
+-- See the GnuPG manual for more information: <https://www.gnupg.org/documentation/manuals/gpgme.pdf>
+--
+--
+-- == Example (from the tests):
+--
+-- >let alice_pub_fpr = "EAACEB8A"
+-- >
+-- >-- encrypt
+-- >enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+-- >          withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
+-- >              encrypt bCtx [aPubKey] noFlag plain
+-- >
+-- >-- decrypt
+-- >dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+-- >        decrypt aCtx (fromJustAndRight enc)
+--
+
 module Crypto.Gpgme (
-      -- ctx
-      newCtx
+      -- * Context
+      Ctx
+    , newCtx
     , freeCtx
     , withCtx
-    , withPWCtx
+
+    -- currently not exported as it does not work as expected:
+    -- , withPWCtx
     
-    -- keys
+    -- * Keys
+    , Key
     , getKey
     , freeKey
     , withKey
 
-    -- encryption
+    -- * Encryption
     , encrypt
     , encryptSign
     , encrypt'
@@ -20,9 +57,7 @@ module Crypto.Gpgme (
     , decryptVerify
     , decryptVerify'
 
-      -- types
-    , Ctx
-
+      -- * Other Types
     , Protocol
     , openPGP
 

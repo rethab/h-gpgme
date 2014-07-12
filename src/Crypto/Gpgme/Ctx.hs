@@ -9,7 +9,13 @@ import System.Posix.IO (fdWrite)
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
 
-newCtx :: String -> String -> Protocol -> IO Ctx
+-- | Creates a new 'Ctx' from a @homedirectory@, a @locale@
+--   and a @protocol@. Needs to be freed with 'freeCtx', which
+--   is why you are encouraged to use 'withCtx'.
+newCtx :: String   -- ^ path to gpg homedirectory
+       -> String   -- ^ locale
+       -> Protocol -- ^ protocol
+       -> IO Ctx
 newCtx homedir localeStr (Protocol protocol) =
     do homedirPtr <- newCString homedir
 
@@ -37,13 +43,21 @@ newCtx homedir localeStr (Protocol protocol) =
     where lcCtype :: CInt
           lcCtype = 0
 
+-- | Free a previously created 'Ctx'
 freeCtx :: Ctx -> IO ()
 freeCtx (Ctx ctxPtr _) =
     do ctx <- peek ctxPtr
        c'gpgme_release ctx
        free ctxPtr
 
-withCtx :: String -> String -> Protocol -> (Ctx -> IO a) -> IO a
+-- | Runs the action with a new 'Ctx' and frees it afterwards
+--
+--   See 'newCtx' for a descrption of the parameters.
+withCtx :: String        -- ^ path to gpg homedirectory
+        -> String        -- ^ locale
+        -> Protocol      -- ^ protocol
+        -> (Ctx -> IO a) -- ^ action to be run with ctx
+        -> IO a
 withCtx homedir localeStr prot f = do
     ctx <- newCtx homedir localeStr prot
     res <- f ctx

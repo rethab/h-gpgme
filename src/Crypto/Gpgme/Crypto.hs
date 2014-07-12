@@ -24,9 +24,15 @@ import Crypto.Gpgme.Types
 locale :: String
 locale = "C"
 
+-- | Convenience wrapper around 'withCtx' and 'withKey' to
+--   encrypt a single plaintext for a single recipient with
+--   its homedirectory.
 encrypt' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encrypt' = encryptIntern' encrypt
 
+-- | Convenience wrapper around 'withCtx' and 'withKey' to
+--   encrypt and sign a single plaintext for a single recipient
+--   with its homedirectory.
 encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptSign' = encryptIntern' encryptSign
 
@@ -42,9 +48,11 @@ encryptIntern' encrFun gpgDir recFpr plain = do
         mapErr (Just (Left err))  = Left (show err)
         mapErr (Just (Right res)) = Right res
 
+-- | encrypt for a list of recipients
 encrypt :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted)
 encrypt = encryptIntern c'gpgme_op_encrypt
 
+-- | encrypt and sign for a list of recipients
 encryptSign :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted) 
 encryptSign = encryptIntern c'gpgme_op_encrypt_sign
 
@@ -100,9 +108,13 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
 
     return res
 
+-- | Convenience wrapper around 'withCtx' and 'withKey' to
+--   decrypt a single ciphertext with its homedirectory.
 decrypt' :: String -> Encrypted -> IO (Either DecryptError Plain)
 decrypt' = decryptInternal' decrypt
 
+-- | Convenience wrapper around 'withCtx' and 'withKey' to
+--   decrypt and verify a single ciphertext with its homedirectory.
 decryptVerify' :: String -> Encrypted -> IO (Either DecryptError Plain)
 decryptVerify' = decryptInternal' decryptVerify
 
@@ -114,9 +126,11 @@ decryptInternal' decrFun gpgDir cipher =
     withCtx gpgDir locale openPGP $ \ctx ->
         decrFun ctx cipher
 
+-- | Decrypts a ciphertext
 decrypt :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decrypt = decryptIntern c'gpgme_op_decrypt
 
+-- | Decrypts and verifies a ciphertext
 decryptVerify :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decryptVerify = decryptIntern c'gpgme_op_decrypt_verify
 
