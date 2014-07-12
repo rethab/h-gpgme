@@ -1,3 +1,5 @@
+module TestMain where
+
 import Test.Framework (defaultMain, testGroup)
 
 import KeyTest 
