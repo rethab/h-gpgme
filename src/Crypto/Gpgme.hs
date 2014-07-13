@@ -58,6 +58,10 @@ module Crypto.Gpgme (
     , decryptVerify'
 
       -- * Other Types
+    , Fpr
+    , Encrypted
+    , Plain
+
     , Protocol
     , openPGP
 

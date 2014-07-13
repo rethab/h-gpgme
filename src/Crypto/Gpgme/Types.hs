@@ -19,8 +19,13 @@ data Ctx = Ctx {
     , _version :: String
 }
 
+-- | a fingerprint 
 type Fpr = BS.ByteString
+
+-- | a plaintext
 type Plain = BS.ByteString
+
+-- | an ciphertext
 type Encrypted = BS.ByteString
 
 -- | The fingerprint and an error code
