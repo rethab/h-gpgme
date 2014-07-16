@@ -39,7 +39,7 @@ encryptSign' = encryptIntern' encryptSign
 encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
-encryptIntern' encrFun gpgDir recFpr plain = do
+encryptIntern' encrFun gpgDir recFpr plain =
     withCtx gpgDir locale openPGP $ \ctx ->
         do mbRes <- withKey ctx recFpr noSecret $ \pubKey ->
                         encrFun ctx [pubKey] noFlag plain
@@ -75,12 +75,11 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
         let copyData = 1 -- gpgme shall copy data, as bytestring will free it
         let plainlen = fromIntegral (BS.length plain)
         ret <- c'gpgme_data_new_from_mem plainBufPtr bs plainlen copyData
-        check_error "data_new_from_mem" ret
+        checkError "data_new_from_mem" ret
     plainBuf <- peek plainBufPtr
 
     -- init buffer for result
-    resultBufPtr <- malloc
-    check_error "data_new" =<< c'gpgme_data_new resultBufPtr
+    resultBufPtr <- newDataBuffer
     resultBuf <- peek resultBufPtr
 
     -- null terminated array of recipients
@@ -92,7 +91,7 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
     ctx <- peek ctxPtr
 
     -- encrypt
-    check_error "op_encrypt" =<< enc_op ctx recArray flag plainBuf resultBuf
+    checkError "op_encrypt" =<< enc_op ctx recArray flag plainBuf resultBuf
     free plainBufPtr
 
     -- check whether all keys could be used for encryption
@@ -150,12 +149,11 @@ decryptIntern dec_op (Ctx ctxPtr _) cipher = do
         let copyData = 1 -- gpgme shall copy data, as bytestring will free it
         let cipherlen = fromIntegral (BS.length cipher)
         ret <- c'gpgme_data_new_from_mem cipherBufPtr bs cipherlen copyData
-        check_error "data_new_from_mem" ret
+        checkError "data_new_from_mem" ret
     cipherBuf <- peek cipherBufPtr
 
     -- init buffer for result
-    resultBufPtr <- malloc
-    check_error "data_new" =<< c'gpgme_data_new resultBufPtr
+    resultBufPtr <- newDataBuffer
     resultBuf <- peek resultBufPtr
 
     ctx <- peek ctxPtr
@@ -171,3 +169,9 @@ decryptIntern dec_op (Ctx ctxPtr _) cipher = do
     free resultBufPtr
 
     return res
+
+newDataBuffer :: IO (Ptr C'gpgme_data_t)
+newDataBuffer = do
+    resultBufPtr <- malloc
+    checkError "data_new" =<< c'gpgme_data_new resultBufPtr
+    return resultBufPtr

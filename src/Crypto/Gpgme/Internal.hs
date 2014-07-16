@@ -33,8 +33,8 @@ collectResult dat' = unsafePerformIO $ do
                           else return BS.empty
         seekSet = 0
 
-check_error :: String -> C'gpgme_error_t -> IO ()
-check_error fun gpgme_err =
+checkError :: String -> C'gpgme_error_t -> IO ()
+checkError fun gpgme_err =
     unless (gpgme_err == noError) $
            do errstr <- c'gpgme_strerror gpgme_err
               str <- peekCString errstr
