@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests) where
 
+import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
 import Test.Framework.Providers.HUnit
@@ -13,15 +14,16 @@ import Crypto.Gpgme
 import TestUtil
 
 tests = [ testProperty "bob_encrypt_for_alice_decrypt"
-            bob_encrypt_for_alice_decrypt
+                       bob_encrypt_for_alice_decrypt
         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
-            bob_encrypt_sign_for_alice_decrypt_verify
-        , testCase "decrypt_garbage"
-            decrypt_garbage
-         , testProperty "bob_encrypt_for_alice_decrypt_short"
-             bob_encrypt_for_alice_decrypt_short
-         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
-             bob_encrypt_sign_for_alice_decrypt_verify_short
+                       bob_encrypt_sign_for_alice_decrypt_verify
+        , testProperty "bob_encrypt_for_alice_decrypt_short"
+                       bob_encrypt_for_alice_decrypt_short
+        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
+                       bob_encrypt_sign_for_alice_decrypt_verify_short
+
+        , testCase "decrypt_garbage" decrypt_garbage
+        , testCase "encrypt_wrong_key" encrypt_wrong_key
 
         {- very annoying to run, as passphrase callbacks don't work:
         , testProperty "bob_encrypt_symmetrically" bob_encrypt_symmetrically
@@ -114,6 +116,13 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
 --                        decrypt aCtx (fromRight enc)
 -- 
 --                return $ fromRight dec
+
+encrypt_wrong_key :: Assertion
+encrypt_wrong_key = do 
+    res <- encrypt' "test/bob" "INEXISTENT" "plaintext"
+    assertBool "should fail" (isLeft res)
+    let err = fromLeft res
+    assertBool "should contain key" ("INEXISTENT" `isInfixOf` err)
 
 decrypt_garbage :: Assertion
 decrypt_garbage = do
