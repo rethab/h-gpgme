@@ -66,13 +66,9 @@ module Crypto.Gpgme (
 
     , InvalidKey
 
-    , IncludeSecret
-    , noSecret
-    , secret
+    , IncludeSecret(..)
 
-    , Flag
-    , alwaysTrust
-    , noFlag
+    , Flag(..)
 
     , DecryptError(..)
 

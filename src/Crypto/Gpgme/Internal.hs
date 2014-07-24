@@ -5,6 +5,7 @@ import Control.Monad (unless)
 import qualified Data.ByteString as BS
 import Foreign (allocaBytes, castPtr, peek)
 import Foreign.C.String (peekCString)
+import Foreign.C.Types (CUInt, CInt)
 import System.IO.Unsafe (unsafePerformIO)
 
 import Crypto.Gpgme.Types
@@ -53,3 +54,10 @@ fromProtocol GPGCONF =  c'GPGME_PROTOCOL_GPGCONF
 fromProtocol OpenPGP =  c'GPGME_PROTOCOL_OpenPGP
 fromProtocol UNKNOWN =  c'GPGME_PROTOCOL_UNKNOWN
 
+fromSecret :: IncludeSecret -> CInt
+fromSecret WithSecret = 0
+fromSecret NoSecret   = 1
+
+fromFlag :: Flag -> CUInt
+fromFlag AlwaysTrust = c'GPGME_ENCRYPT_ALWAYS_TRUST
+fromFlag NoFlag      = 0

@@ -2,7 +2,6 @@ module Crypto.Gpgme.Types where
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
-import Foreign.C.Types (CInt, CUInt)
 import Foreign
 
 -- | the protocol to be used in the crypto engine
@@ -36,23 +35,13 @@ type InvalidKey = (String, Int)
 newtype Key = Key { unKey :: Ptr C'gpgme_key_t }
 
 -- | Whether to include secret keys when searching
-newtype IncludeSecret = IncludeSecret CInt
+data IncludeSecret =
+      WithSecret -- ^ do not include secret keys
+    | NoSecret   -- ^ include secret keys
 
--- | do not consider secret keys when searching
-noSecret :: IncludeSecret
-noSecret = IncludeSecret 0
-
--- | consider secret keys when searching
-secret :: IncludeSecret
-secret = IncludeSecret 1
-
-newtype Flag = Flag CUInt
-
-alwaysTrust :: Flag
-alwaysTrust = Flag c'GPGME_ENCRYPT_ALWAYS_TRUST
-
-noFlag :: Flag
-noFlag = Flag 0
+data Flag =
+      AlwaysTrust
+    | NoFlag
 
 -- | error indicating what went wrong in decryption
 data DecryptError =

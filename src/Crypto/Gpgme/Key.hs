@@ -19,11 +19,11 @@ getKey :: Ctx           -- ^ context to operate in
        -> Fpr           -- ^ fingerprint
        -> IncludeSecret -- ^ whether to include secrets when searching for the key
        -> IO (Maybe Key)
-getKey (Ctx ctxPtr _) fpr (IncludeSecret is) = do
+getKey (Ctx ctxPtr _) fpr secret = do
     keyPtr <- malloc
     ret <- BS.useAsCString fpr $ \cFpr ->
         peek ctxPtr >>= \ctx ->
-            c'gpgme_get_key ctx cFpr keyPtr is
+            c'gpgme_get_key ctx cFpr keyPtr (fromSecret secret)
     if ret == noError
         then return . Just . Key $ keyPtr
         else free keyPtr >> return Nothing

@@ -37,8 +37,8 @@ bob_encrypt_for_alice_decrypt plain =
 
                -- encrypt
                enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-                       withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
-                           encrypt bCtx [aPubKey] noFlag plain
+                       withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
+                           encrypt bCtx [aPubKey] NoFlag plain
 
                -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
@@ -72,8 +72,8 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
 
                -- encrypt
                enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-                       withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
-                           encryptSign bCtx [aPubKey] noFlag plain
+                       withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
+                           encryptSign bCtx [aPubKey] NoFlag plain
 
                -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
@@ -116,7 +116,7 @@ bob_encrypt_symmetrically = do
         -- encrypt
         cipher <- fmap fromRight $
                     withCtx "test/bob" "C" OpenPGP $ \ctx ->
-                        encrypt ctx [] noFlag "plaintext"
+                        encrypt ctx [] NoFlag "plaintext"
         assertBool "must not be plain" (cipher /= "plaintext")
 
         -- decrypt

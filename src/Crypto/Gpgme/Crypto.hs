@@ -41,8 +41,8 @@ encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptIntern' encrFun gpgDir recFpr plain =
     withCtx gpgDir locale OpenPGP $ \ctx ->
-        do mbRes <- withKey ctx recFpr noSecret $ \pubKey ->
-                        encrFun ctx [pubKey] noFlag plain
+        do mbRes <- withKey ctx recFpr NoSecret $ \pubKey ->
+                        encrFun ctx [pubKey] NoFlag plain
            return $ mapErr mbRes
   where mapErr Nothing = Left $ "no such key: " ++ show recFpr
         mapErr (Just (Left err))  = Left (show err)
@@ -68,7 +68,7 @@ encryptIntern :: (C'gpgme_ctx_t
                   -> Flag
                   -> Plain
                   -> IO (Either [InvalidKey] Encrypted) 
-encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
+encryptIntern enc_op (Ctx ctxPtr _) recPtrs flag plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
     BS.useAsCString plain $ \bs -> do
@@ -91,7 +91,8 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs (Flag flag) plain = do
     ctx <- peek ctxPtr
 
     -- encrypt
-    checkError "op_encrypt" =<< enc_op ctx recArray flag plainBuf resultBuf
+    checkError "op_encrypt" =<< enc_op ctx recArray (fromFlag flag)
+                                    plainBuf resultBuf
     free plainBufPtr
 
     -- check whether all keys could be used for encryption
