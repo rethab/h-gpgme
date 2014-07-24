@@ -24,10 +24,7 @@ tests = [ testProperty "bob_encrypt_for_alice_decrypt"
 
         , testCase "decrypt_garbage" decrypt_garbage
         , testCase "encrypt_wrong_key" encrypt_wrong_key
-
-        {- very annoying to run, as passphrase callbacks don't work:
-        , testProperty "bob_encrypt_symmetrically" bob_encrypt_symmetrically
-        -}
+        , testCase "bob_encrypt_symmetrically" bob_encrypt_symmetrically
         ]
 
 bob_encrypt_for_alice_decrypt :: Plain -> Property
@@ -100,23 +97,6 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
 
                return $ fromRight dec
 
--- bob_encrypt_symmetrically plain =
---     not (BS.null plain) ==> monadicIO $ do
---         dec <- run encr_and_decr
---         assert $ dec == plain
---   where encr_and_decr =
---             do let symmetric_key = "foo"
--- 
---                -- encrypt
---                enc <- withPWCtx symmetric_key "test/bob" "C" openPGP $ \bCtx ->
---                            encrypt bCtx [] noFlag plain
--- 
---                -- decrypt
---                dec <- withPWCtx symmetric_key "test/alice" "C" openPGP $ \aCtx ->
---                        decrypt aCtx (fromRight enc)
--- 
---                return $ fromRight dec
-
 encrypt_wrong_key :: Assertion
 encrypt_wrong_key = do 
     res <- encrypt' "test/bob" "INEXISTENT" "plaintext"
@@ -129,3 +109,19 @@ decrypt_garbage = do
     val <- withCtx "test/bob" "C" openPGP $ \bCtx ->
               decrypt bCtx (BS.pack [1,2,3,4,5,6])
     isLeft val @? "should be left " ++ show val
+
+bob_encrypt_symmetrically :: Assertion
+bob_encrypt_symmetrically = do
+
+        -- encrypt
+        cipher <- fmap fromRight $
+                    withCtx "test/bob" "C" openPGP $ \ctx ->
+                        encrypt ctx [] noFlag "plaintext"
+        assertBool "must not be plain" (cipher /= "plaintext")
+
+        -- decrypt
+        plain <- fmap fromRight $
+                    withCtx "test/alice" "C" openPGP $ \ctx ->
+                        decrypt ctx cipher
+
+        assertEqual "should decrypt to same" "plaintext" plain
