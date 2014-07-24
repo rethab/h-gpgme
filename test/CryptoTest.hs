@@ -3,7 +3,6 @@ module CryptoTest (tests) where
 
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
-import Data.Maybe
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 import Test.HUnit hiding (assert)
@@ -29,6 +28,7 @@ tests = [ testProperty "bob_encrypt_for_alice_decrypt"
         -}
         ]
 
+bob_encrypt_for_alice_decrypt :: Plain -> Property
 bob_encrypt_for_alice_decrypt plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
@@ -47,6 +47,7 @@ bob_encrypt_for_alice_decrypt plain =
 
                return $ fromRight dec
 
+bob_encrypt_for_alice_decrypt_short :: Plain -> Property
 bob_encrypt_for_alice_decrypt_short plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
@@ -62,6 +63,7 @@ bob_encrypt_for_alice_decrypt_short plain =
 
                return $ fromRight dec
 
+bob_encrypt_sign_for_alice_decrypt_verify :: Plain -> Property
 bob_encrypt_sign_for_alice_decrypt_verify plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
@@ -80,6 +82,7 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
 
                return $ fromRight dec
 
+bob_encrypt_sign_for_alice_decrypt_verify_short :: Plain -> Property
 bob_encrypt_sign_for_alice_decrypt_verify_short plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
@@ -112,6 +115,7 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
 -- 
 --                return $ fromRight dec
 
+decrypt_garbage :: Assertion
 decrypt_garbage = do
     val <- withCtx "test/bob" "C" openPGP $ \bCtx ->
               decrypt bCtx (BS.pack [1,2,3,4,5,6])
