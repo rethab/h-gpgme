@@ -15,7 +15,7 @@ newCtx :: String   -- ^ path to gpg homedirectory
        -> String   -- ^ locale
        -> Protocol -- ^ protocol
        -> IO Ctx
-newCtx homedir localeStr (Protocol protocol) =
+newCtx homedir localeStr protocol =
     do homedirPtr <- newCString homedir
 
        -- check version: necessary for initialization!!
@@ -32,11 +32,12 @@ newCtx homedir localeStr (Protocol protocol) =
        checkError "set_locale" =<< c'gpgme_set_locale ctx lcCtype locale
 
        -- set protocol in ctx
-       checkError "set_protocol" =<< c'gpgme_set_protocol ctx (fromIntegral protocol)
+       checkError "set_protocol" =<< c'gpgme_set_protocol ctx
+                                        (fromProtocol protocol)
 
        -- set homedir in ctx
        checkError "set_engine_info" =<< c'gpgme_ctx_set_engine_info ctx
-                            (fromIntegral protocol) nullPtr homedirPtr
+                            (fromProtocol protocol) nullPtr homedirPtr
 
        return (Ctx ctxPtr version)
     where lcCtype :: CInt

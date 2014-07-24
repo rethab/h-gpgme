@@ -40,7 +40,7 @@ encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptIntern' encrFun gpgDir recFpr plain =
-    withCtx gpgDir locale openPGP $ \ctx ->
+    withCtx gpgDir locale OpenPGP $ \ctx ->
         do mbRes <- withKey ctx recFpr noSecret $ \pubKey ->
                         encrFun ctx [pubKey] noFlag plain
            return $ mapErr mbRes
@@ -122,7 +122,7 @@ decryptInternal' :: (Ctx -> Encrypted -> IO (Either DecryptError Plain))
                   -> Encrypted
                   -> IO (Either DecryptError Plain)
 decryptInternal' decrFun gpgDir cipher =
-    withCtx gpgDir locale openPGP $ \ctx ->
+    withCtx gpgDir locale OpenPGP $ \ctx ->
         decrFun ctx cipher
 
 -- | Decrypts a ciphertext

@@ -62,8 +62,7 @@ module Crypto.Gpgme (
     , Encrypted
     , Plain
 
-    , Protocol
-    , openPGP
+    , Protocol(..)
 
     , InvalidKey
 

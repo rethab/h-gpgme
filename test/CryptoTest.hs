@@ -36,12 +36,12 @@ bob_encrypt_for_alice_decrypt plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+               enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
                        withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
                            encrypt bCtx [aPubKey] noFlag plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
                        decrypt aCtx (fromJustAndRight enc)
 
                return $ fromRight dec
@@ -71,12 +71,12 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+               enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
                        withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
                            encryptSign bCtx [aPubKey] noFlag plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" openPGP $ \aCtx ->
+               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
                        decryptVerify aCtx (fromJustAndRight enc)
 
                return $ fromRight dec
@@ -106,7 +106,7 @@ encrypt_wrong_key = do
 
 decrypt_garbage :: Assertion
 decrypt_garbage = do
-    val <- withCtx "test/bob" "C" openPGP $ \bCtx ->
+    val <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
               decrypt bCtx (BS.pack [1,2,3,4,5,6])
     isLeft val @? "should be left " ++ show val
 
@@ -115,13 +115,13 @@ bob_encrypt_symmetrically = do
 
         -- encrypt
         cipher <- fmap fromRight $
-                    withCtx "test/bob" "C" openPGP $ \ctx ->
+                    withCtx "test/bob" "C" OpenPGP $ \ctx ->
                         encrypt ctx [] noFlag "plaintext"
         assertBool "must not be plain" (cipher /= "plaintext")
 
         -- decrypt
         plain <- fmap fromRight $
-                    withCtx "test/alice" "C" openPGP $ \ctx ->
+                    withCtx "test/alice" "C" OpenPGP $ \ctx ->
                         decrypt ctx cipher
 
         assertEqual "should decrypt to same" "plaintext" plain

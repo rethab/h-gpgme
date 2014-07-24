@@ -46,3 +46,10 @@ checkError fun gpgme_err =
 
 noError :: Num a => a
 noError = 0
+
+fromProtocol :: (Num a) => Protocol -> a
+fromProtocol CMS     =  c'GPGME_PROTOCOL_CMS
+fromProtocol GPGCONF =  c'GPGME_PROTOCOL_GPGCONF
+fromProtocol OpenPGP =  c'GPGME_PROTOCOL_OpenPGP
+fromProtocol UNKNOWN =  c'GPGME_PROTOCOL_UNKNOWN
+

@@ -6,11 +6,11 @@ import Foreign.C.Types (CInt, CUInt)
 import Foreign
 
 -- | the protocol to be used in the crypto engine
-newtype Protocol = Protocol Int
-
-openPGP :: Protocol 
-openPGP = Protocol c'GPGME_PROTOCOL_OpenPGP
--- TODO other protocols
+data Protocol =
+      CMS
+    | GPGCONF
+    | OpenPGP
+    | UNKNOWN
 
 -- | Context to be passed around with operations. Use 'newCtx' or
 --   'withCtx' in order to obtain an instance.
