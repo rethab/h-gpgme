@@ -3,3 +3,4 @@ cabal.sandbox.config
 dist/
 test/alice/random_seed
 test/bob/random_seed
+.hpc/
