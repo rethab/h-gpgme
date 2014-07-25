@@ -55,8 +55,8 @@ fromProtocol OpenPGP =  c'GPGME_PROTOCOL_OpenPGP
 fromProtocol UNKNOWN =  c'GPGME_PROTOCOL_UNKNOWN
 
 fromSecret :: IncludeSecret -> CInt
-fromSecret WithSecret = 0
-fromSecret NoSecret   = 1
+fromSecret WithSecret = 1
+fromSecret NoSecret   = 0
 
 fromFlag :: Flag -> CUInt
 fromFlag AlwaysTrust = c'GPGME_ENCRYPT_ALWAYS_TRUST
