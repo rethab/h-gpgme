@@ -37,6 +37,7 @@ module Crypto.Gpgme (
     , newCtx
     , freeCtx
     , withCtx
+    , withArmor
 
     -- currently not exported as it does not work as expected:
     -- , withPWCtx
