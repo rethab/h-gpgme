@@ -18,3 +18,9 @@ dec <- withCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
 ```
 
 See the test folder for more examples
+
+Changelog
+---------
+
+- 0.2.0.0
+ - Added withArmor for ASCII-armored output (thanks yaccz)
