@@ -32,7 +32,15 @@ type InvalidKey = (String, Int)
 -- TODO map intot better error code
 
 -- | A key from the context
-newtype Key = Key { unKey :: Ptr C'gpgme_key_t }
+newtype Key = Key { unKey :: ForeignPtr C'gpgme_key_t }
+
+-- | Allocate a key
+allocKey :: IO Key
+allocKey = Key `fmap` mallocForeignPtr
+
+-- | Perform an action with the pointer to a 'Key'
+withKeyPtr :: Key -> (Ptr C'gpgme_key_t -> IO a) -> IO a
+withKeyPtr (Key fPtr) f = withForeignPtr fPtr f
 
 -- | Whether to include secret keys when searching
 data IncludeSecret =

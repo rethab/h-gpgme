@@ -22,7 +22,6 @@ get_alice_pub_from_alice = do
     withCtx "test/alice" "C" OpenPGP $ \ctx ->
         do key <- getKey ctx alice_pub_fpr NoSecret
            isJust key @? "missing " ++ show alice_pub_fpr
-           freeKey (fromJust key)
 
 get_bob_pub_from_alice :: Assertion
 get_bob_pub_from_alice = do
@@ -30,7 +29,6 @@ get_bob_pub_from_alice = do
     withCtx "test/alice/" "C" OpenPGP $ \ctx ->
         do key <- getKey ctx bob_pub_fpr NoSecret
            isJust key @? "missing " ++ show bob_pub_fpr
-           freeKey (fromJust key)
 
 alice_list_pub_keys :: Assertion
 alice_list_pub_keys = do
