@@ -1,5 +1,6 @@
 module Crypto.Gpgme.Key (
       getKey
+    , listKeys
     , freeKey
     , withKey
     ) where
@@ -10,6 +11,25 @@ import Foreign
 
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
+
+-- | Returns a list of known 'Key's from the @context@.
+listKeys :: Ctx            -- ^ context to operate in
+         -> IncludeSecret  -- ^ fingerprint
+         -> IO [Key]
+listKeys (Ctx ctxPtr _) secret = do
+    peek ctxPtr >>= \ctx ->
+        c'gpgme_op_keylist_start ctx nullPtr (fromSecret secret) >>= checkError "listKeys"
+    let eof = 16383
+        go accum = do
+            keyPtr <- malloc
+            ret <- peek ctxPtr >>= \ctx ->
+                c'gpgme_op_keylist_next ctx keyPtr
+            code <- c'gpgme_err_code ret
+            case ret of
+                _ | ret == noError -> go (Key keyPtr : accum)
+                  | code == eof    -> return accum
+                  | otherwise      -> checkError "listKeys" ret >> return []
+    go []
 
 -- | Returns a 'Key' from the @context@ based on its @fingerprint@.
 --   As a 'Key' returned from the function needs to be freed
