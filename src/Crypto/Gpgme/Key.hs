@@ -2,6 +2,7 @@ module Crypto.Gpgme.Key (
       getKey
     , listKeys
       -- * Information about keys
+    , KeySignature (..)
     , UserId (..)
     , KeyUserId (..)
     , keyUserIds
@@ -10,8 +11,10 @@ module Crypto.Gpgme.Key (
 import Bindings.Gpgme
 import Control.Applicative
 import qualified Data.ByteString as BS
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import Foreign
-import Foreign.C.String
+import Foreign.C
 import System.IO.Unsafe
 
 import Crypto.Gpgme.Types
@@ -52,6 +55,37 @@ getKey (Ctx ctxPtr _) fpr secret = do
         then return . Just $ key
         else return Nothing
 
+-- | A key signature
+data KeySignature = KeySig { keysigAlgorithm :: PubKeyAlgo
+                           , keysigKeyId     :: String
+                           , keysigTimestamp :: Maybe UTCTime
+                           , keysigExpires   :: Maybe UTCTime
+                           , keysigUserId    :: UserId
+                             -- TODO: Notations
+                           }
+
+readKeySignatures :: C'gpgme_key_sig_t -> IO [KeySignature]
+readKeySignatures p0 = peekList c'_gpgme_key_sig'next p0 >>= mapM readSig
+  where
+    readSig sig =
+        KeySig <$> pure (toPubKeyAlgo $ c'_gpgme_key_sig'pubkey_algo sig)
+               <*> peekCString (c'_gpgme_key_sig'keyid sig)
+               <*> pure (readTime $ c'_gpgme_key_sig'timestamp sig)
+               <*> pure (readTime $ c'_gpgme_key_sig'expires sig)
+               <*> signerId
+      where
+        readTime :: CInt -> Maybe UTCTime
+        readTime (-1) = Nothing
+        readTime 0    = Nothing
+        readTime t    = Just $ posixSecondsToUTCTime $ realToFrac t
+
+        signerId :: IO UserId
+        signerId =
+            UserId <$> peekCString (c'_gpgme_key_sig'uid sig)
+                   <*> peekCString (c'_gpgme_key_sig'name sig)
+                   <*> peekCString (c'_gpgme_key_sig'email sig)
+                   <*> peekCString (c'_gpgme_key_sig'comment sig)
+
 -- | A user ID consisting of a name, comment, and email address.
 data UserId = UserId { userId         :: String
                      , userName       :: String
@@ -63,6 +97,7 @@ data UserId = UserId { userId         :: String
 -- | A user ID
 data KeyUserId = KeyUserId { keyuserValidity   :: Validity
                            , keyuserId         :: UserId
+                           , keyuserSignatures :: [KeySignature]
                            }
 
 peekList :: Storable a => (a -> Ptr a) -> Ptr a -> IO [a]
@@ -86,6 +121,7 @@ keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
     readKeyUserId uid =
         KeyUserId <$> pure (toValidity $ c'_gpgme_user_id'validity uid)
                   <*> userId'
+                  <*> readKeySignatures (c'_gpgme_user_id'signatures uid)
       where
         userId' :: IO UserId
         userId' =

@@ -25,7 +25,7 @@ collectResult dat' = unsafePerformIO $ do
     _ <- c'gpgme_data_seek dat' 0 seekSet
     go dat'
   where go :: C'gpgme_data_t -> IO BS.ByteString
-        go dat = allocaBytes 1 $ \buf -> 
+        go dat = allocaBytes 1 $ \buf ->
                     do read_bytes <- c'gpgme_data_read dat buf 1
                        if read_bytes == 1
                           then do byte <- peek (castPtr buf)
@@ -42,7 +42,7 @@ checkError fun gpgme_err =
               srcstr <- c'gpgme_strsource gpgme_err
               src <- peekCString srcstr
               error ("Fun: " ++ fun ++
-                     ", Error: " ++ str ++ 
+                     ", Error: " ++ str ++
                      ", Source: " ++ show src)
 
 noError :: Num a => a
@@ -71,3 +71,13 @@ toValidity n
   | n == c'GPGME_VALIDITY_FULL      = ValidityFull
   | n == c'GPGME_VALIDITY_ULTIMATE  = ValidityUltimate
   | otherwise                       = error "validityFromInt: Unrecognized trust validity"
+
+toPubKeyAlgo :: C'gpgme_pubkey_algo_t -> PubKeyAlgo
+toPubKeyAlgo n
+  | n == c'GPGME_PK_RSA   = Rsa
+  | n == c'GPGME_PK_RSA_E = RsaE
+  | n == c'GPGME_PK_RSA_S = RsaS
+  | n == c'GPGME_PK_ELG_E = ElgE
+  | n == c'GPGME_PK_DSA   = Dsa
+  | n == c'GPGME_PK_ELG   = Elg
+  | otherwise             = error "toPubKeyAlgo: Unrecognized public key algorithm"

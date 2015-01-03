@@ -78,3 +78,13 @@ data Validity = ValidityUnknown
               | ValidityMarginal
               | ValidityFull
               | ValidityUltimate
+
+-- | A public-key encryption algorithm
+data PubKeyAlgo =
+      Rsa
+    | RsaE
+    | RsaS
+    | ElgE
+    | Dsa
+    | Elg
+    deriving (Show, Ord, Eq)
