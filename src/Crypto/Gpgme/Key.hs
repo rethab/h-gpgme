@@ -1,11 +1,18 @@
 module Crypto.Gpgme.Key (
       getKey
     , listKeys
+      -- * Information about keys
+    , UserId (..)
+    , KeyUserId (..)
+    , keyUserIds
     ) where
 
 import Bindings.Gpgme
+import Control.Applicative
 import qualified Data.ByteString as BS
 import Foreign
+import Foreign.C.String
+import System.IO.Unsafe
 
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
@@ -44,3 +51,48 @@ getKey (Ctx ctxPtr _) fpr secret = do
     if ret == noError
         then return . Just $ key
         else return Nothing
+
+-- | A user ID consisting of a name, comment, and email address.
+data UserId = UserId { userId         :: String
+                     , userName       :: String
+                     , userEmail      :: String
+                     , userComment    :: String
+                     }
+            deriving (Ord, Eq, Show)
+
+-- | A user ID
+data KeyUserId = KeyUserId { keyuserValidity   :: Validity
+                           , keyuserId         :: UserId
+                           }
+
+peekList :: Storable a => (a -> Ptr a) -> Ptr a -> IO [a]
+peekList nextFunc = go []
+  where
+    go accum p
+      | p == nullPtr  = return accum
+      | otherwise     = do v <- peek p
+                           go (v : accum) (nextFunc v)
+
+keyUserIds' :: Key -> IO [KeyUserId]
+keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
+    readUserIds keyPtr >>= mapM readKeyUserId
+  where
+    readUserIds :: Ptr C'gpgme_key_t -> IO [C'_gpgme_user_id]
+    readUserIds keyPtr = do
+        key' <- peek keyPtr >>= peek
+        peekList c'_gpgme_user_id'next (c'_gpgme_key'uids key')
+
+    readKeyUserId :: C'_gpgme_user_id -> IO KeyUserId
+    readKeyUserId uid =
+        KeyUserId <$> pure (toValidity $ c'_gpgme_user_id'validity uid)
+                  <*> userId'
+      where
+        userId' :: IO UserId
+        userId' =
+            UserId <$> peekCString (c'_gpgme_user_id'uid uid)
+                   <*> peekCString (c'_gpgme_user_id'name uid)
+                   <*> peekCString (c'_gpgme_user_id'email uid)
+                   <*> peekCString (c'_gpgme_user_id'comment uid)
+
+keyUserIds :: Key -> [KeyUserId]
+keyUserIds = unsafePerformIO . keyUserIds'

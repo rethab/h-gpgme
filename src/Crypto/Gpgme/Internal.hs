@@ -61,3 +61,13 @@ fromSecret NoSecret   = 0
 fromFlag :: Flag -> CUInt
 fromFlag AlwaysTrust = c'GPGME_ENCRYPT_ALWAYS_TRUST
 fromFlag NoFlag      = 0
+
+toValidity :: C'gpgme_validity_t -> Validity
+toValidity n
+  | n == c'GPGME_VALIDITY_UNKNOWN   = ValidityUnknown
+  | n == c'GPGME_VALIDITY_UNDEFINED = ValidityUndefined
+  | n == c'GPGME_VALIDITY_NEVER     = ValidityNever
+  | n == c'GPGME_VALIDITY_MARGINAL  = ValidityMarginal
+  | n == c'GPGME_VALIDITY_FULL      = ValidityFull
+  | n == c'GPGME_VALIDITY_ULTIMATE  = ValidityUltimate
+  | otherwise                       = error "validityFromInt: Unrecognized trust validity"
