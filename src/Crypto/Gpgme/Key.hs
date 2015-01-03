@@ -64,6 +64,11 @@ data KeySignature = KeySig { keysigAlgorithm :: PubKeyAlgo
                              -- TODO: Notations
                            }
 
+readTime :: CLong -> Maybe UTCTime
+readTime (-1) = Nothing
+readTime 0    = Nothing
+readTime t    = Just $ posixSecondsToUTCTime $ realToFrac t
+
 readKeySignatures :: C'gpgme_key_sig_t -> IO [KeySignature]
 readKeySignatures p0 = peekList c'_gpgme_key_sig'next p0 >>= mapM readSig
   where
@@ -74,11 +79,6 @@ readKeySignatures p0 = peekList c'_gpgme_key_sig'next p0 >>= mapM readSig
                <*> pure (readTime $ c'_gpgme_key_sig'expires sig)
                <*> signerId
       where
-        readTime :: CInt -> Maybe UTCTime
-        readTime (-1) = Nothing
-        readTime 0    = Nothing
-        readTime t    = Just $ posixSecondsToUTCTime $ realToFrac t
-
         signerId :: IO UserId
         signerId =
             UserId <$> peekCString (c'_gpgme_key_sig'uid sig)
