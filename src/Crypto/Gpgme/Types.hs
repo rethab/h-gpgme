@@ -3,6 +3,7 @@ module Crypto.Gpgme.Types where
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import Foreign
+import qualified Foreign.Concurrent as FC
 
 -- | the protocol to be used in the crypto engine
 data Protocol =
@@ -36,7 +37,12 @@ newtype Key = Key { unKey :: ForeignPtr C'gpgme_key_t }
 
 -- | Allocate a key
 allocKey :: IO Key
-allocKey = Key `fmap` mallocForeignPtr
+allocKey = do
+    keyPtr <- malloc
+    let finalize = do
+            peek keyPtr >>= c'gpgme_key_unref
+            free keyPtr
+    Key `fmap` FC.newForeignPtr keyPtr finalize
 
 -- | Perform an action with the pointer to a 'Key'
 withKeyPtr :: Key -> (Ptr C'gpgme_key_t -> IO a) -> IO a
