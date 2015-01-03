@@ -1,10 +1,12 @@
 module CtxTest (tests) where
 
+import Test.Framework.Core (Test)
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import Crypto.Gpgme
 
+tests :: [Test]
 tests = [ testCase "run_action_with_ctx" run_action_with_ctx
         -- , testCase "unlock_with_pw" unlock_with_pw
         ]
