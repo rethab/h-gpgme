@@ -110,13 +110,9 @@ peekList nextFunc = go []
 
 keyUserIds' :: Key -> IO [KeyUserId]
 keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
-    readUserIds keyPtr >>= mapM readKeyUserId
+    key' <- peek keyPtr >>= peek
+    peekList c'_gpgme_user_id'next (c'_gpgme_key'uids key') >>= mapM readKeyUserId
   where
-    readUserIds :: Ptr C'gpgme_key_t -> IO [C'_gpgme_user_id]
-    readUserIds keyPtr = do
-        key' <- peek keyPtr >>= peek
-        peekList c'_gpgme_user_id'next (c'_gpgme_key'uids key')
-
     readKeyUserId :: C'_gpgme_user_id -> IO KeyUserId
     readKeyUserId uid =
         KeyUserId <$> pure (toValidity $ c'_gpgme_user_id'validity uid)
