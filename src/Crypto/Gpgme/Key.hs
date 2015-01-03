@@ -6,6 +6,8 @@ module Crypto.Gpgme.Key (
     , UserId (..)
     , KeyUserId (..)
     , keyUserIds
+    , SubKey (..)
+    , keySubKeys
     ) where
 
 import Bindings.Gpgme
@@ -128,3 +130,35 @@ keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
 
 keyUserIds :: Key -> [KeyUserId]
 keyUserIds = unsafePerformIO . keyUserIds'
+
+data SubKey = SubKey { subkeyAlgorithm    :: PubKeyAlgo
+                     , subkeyLength       :: Int
+                     , subkeyKeyId        :: String
+                     , subkeyFpr          :: Fpr
+                     , subkeyTimestamp    :: Maybe UTCTime
+                     , subkeyExpires      :: Maybe UTCTime
+                     , subkeyCardNumber   :: Maybe String
+                     }
+
+keySubKeys' :: Key -> IO [SubKey]
+keySubKeys' key = withForeignPtr (unKey key) $ \keyPtr -> do
+    key' <- peek keyPtr >>= peek
+    peekList c'_gpgme_subkey'next (c'_gpgme_key'subkeys key') >>= mapM readSubKey
+  where
+    readSubKey :: C'_gpgme_subkey -> IO SubKey
+    readSubKey sub =
+        SubKey <$> pure (toPubKeyAlgo $ c'_gpgme_subkey'pubkey_algo sub)
+               <*> pure (fromIntegral $ c'_gpgme_subkey'length sub)
+               <*> peekCString (c'_gpgme_subkey'keyid sub)
+               <*> BS.packCString (c'_gpgme_subkey'keyid sub)
+               <*> pure (readTime $ c'_gpgme_subkey'timestamp sub)
+               <*> pure (readTime $ c'_gpgme_subkey'expires sub)
+               <*> orNull peekCString (c'_gpgme_subkey'card_number sub)
+
+orNull :: (Ptr a -> IO b) -> Ptr a -> IO (Maybe b)
+orNull f ptr
+  | ptr == nullPtr = return Nothing
+  | otherwise      = Just <$> f ptr
+
+keySubKeys :: Key -> [SubKey]
+keySubKeys = unsafePerformIO . keySubKeys'
