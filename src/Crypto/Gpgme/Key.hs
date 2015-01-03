@@ -1,7 +1,6 @@
 module Crypto.Gpgme.Key (
       getKey
     , listKeys
-    , withKey
     ) where
 
 import Bindings.Gpgme
@@ -31,9 +30,7 @@ listKeys (Ctx ctxPtr _) secret = do
     go []
 
 -- | Returns a 'Key' from the @context@ based on its @fingerprint@.
---   As a 'Key' returned from the function needs to be freed
---   with 'freeKey', the use of 'withKey' is encouraged. Returns
---   Nothing if no 'Key' with this 'Fpr' exists.
+--   Returns 'Nothing' if no 'Key' with this 'Fpr' exists.
 getKey :: Ctx           -- ^ context to operate in
        -> Fpr           -- ^ fingerprint
        -> IncludeSecret -- ^ whether to include secrets when searching for the key
@@ -47,21 +44,3 @@ getKey (Ctx ctxPtr _) fpr secret = do
     if ret == noError
         then return . Just $ key
         else return Nothing
-
--- | Conveniently runs the @action@ with the 'Key' associated
---   with the 'Fpr' in the 'Ctx' and frees it afterwards.
---   If no 'Key' with this 'Fpr' exists, Nothing is returned.
-
-withKey :: Ctx           -- ^ context to operate in
-        -> Fpr           -- ^ fingerprint
-        -> IncludeSecret -- ^ whether to include secrets when searching for the key
-        -> (Key -> IO a) -- ^ action to be run with key
-        -> IO (Maybe a)
-withKey ctx fpr is f = do 
-    mbkey <- getKey ctx fpr is
-    case mbkey of
-        Just key -> do res <- f key
-                       return (Just res)
-        Nothing -> return Nothing
-
-

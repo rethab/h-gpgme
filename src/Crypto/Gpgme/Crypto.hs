@@ -13,6 +13,8 @@ module Crypto.Gpgme.Crypto (
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import Control.Monad (liftM)
+import Control.Monad.Trans.Either
 import Foreign
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import GHC.Ptr
@@ -37,17 +39,16 @@ encrypt' = encryptIntern' encrypt
 encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptSign' = encryptIntern' encryptSign
 
+orElse :: Monad m => m (Maybe a) -> e -> EitherT e m a
+orElse action err = EitherT $ maybe (Left err) return `liftM` action
+
 encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptIntern' encrFun gpgDir recFpr plain =
-    withCtx gpgDir locale OpenPGP $ \ctx ->
-        do mbRes <- withKey ctx recFpr NoSecret $ \pubKey ->
-                        encrFun ctx [pubKey] NoFlag plain
-           return $ mapErr mbRes
-  where mapErr Nothing = Left $ "no such key: " ++ show recFpr
-        mapErr (Just (Left err))  = Left (show err)
-        mapErr (Just (Right res)) = Right res
+    withCtx gpgDir locale OpenPGP $ \ctx -> runEitherT $
+        do pubKey <- getKey ctx recFpr NoSecret `orElse` ("no such key: " ++ show recFpr)
+           bimapEitherT show id $ EitherT $ encrFun ctx [pubKey] NoFlag plain
 
 -- | encrypt for a list of recipients
 encrypt :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted)

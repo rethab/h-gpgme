@@ -32,6 +32,7 @@ library
   build-depends:       base           == 4.*
                      , bindings-gpgme >= 0.1 && <0.2
                      , bytestring     >= 0.9
+                     , either         >= 4.3 && <5.0
                      , unix           >= 2.5
   default-language:    Haskell2010
 
@@ -45,6 +46,8 @@ test-suite tests
   build-depends:       base           == 4.*
                      , bindings-gpgme >= 0.1 && <0.2
                      , bytestring     >= 0.9
+                     , either         >= 4.3 && <5.0
+                     , transformers   >= 0.3 && <0.5
                      , unix           >= 2.5
 
                      , HUnit                      == 1.2.*

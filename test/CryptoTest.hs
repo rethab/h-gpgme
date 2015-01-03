@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests) where
 
+import Control.Monad (liftM)
+import Control.Monad.Trans.Maybe
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
@@ -27,6 +29,9 @@ tests = [ testProperty "bob_encrypt_for_alice_decrypt"
         , testCase "bob_encrypt_symmetrically" bob_encrypt_symmetrically
         ]
 
+hush :: Monad m => m (Either e a) -> MaybeT m a
+hush = MaybeT . liftM (either (const Nothing) Just)
+
 bob_encrypt_for_alice_decrypt :: Plain -> Property
 bob_encrypt_for_alice_decrypt plain =
     not (BS.null plain) ==> monadicIO $ do
@@ -36,13 +41,13 @@ bob_encrypt_for_alice_decrypt plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-                       withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
-                           encrypt bCtx [aPubKey] NoFlag plain
+               Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+                       aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+                       hush $ encrypt bCtx [aPubKey] NoFlag plain
 
                -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
-                       decrypt aCtx (fromJustAndRight enc)
+                       decrypt aCtx enc
 
                return $ fromRight dec
 
@@ -71,13 +76,13 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
             do let alice_pub_fpr = "EAACEB8A"
 
                -- encrypt
-               enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-                       withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
-                           encryptSign bCtx [aPubKey] NoFlag plain
+               Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+                       aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+                       hush $ encryptSign bCtx [aPubKey] NoFlag plain
 
                -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
-                       decryptVerify aCtx (fromJustAndRight enc)
+                       decryptVerify aCtx enc
 
                return $ fromRight dec
 
