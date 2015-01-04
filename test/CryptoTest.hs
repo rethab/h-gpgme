@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, when)
 import Control.Monad.Trans.Maybe
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
@@ -17,9 +17,15 @@ import TestUtil
 
 tests :: [TestTree]
 tests = [ testProperty "bob_encrypt_for_alice_decrypt"
-                       bob_encrypt_for_alice_decrypt
+                       $ bob_encrypt_for_alice_decrypt False
         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
-                       bob_encrypt_sign_for_alice_decrypt_verify
+                       $ bob_encrypt_sign_for_alice_decrypt_verify False
+
+        , testProperty "bob_encrypt_for_alice_decrypt_with_passphrase_cb"
+                       $ bob_encrypt_for_alice_decrypt True
+        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb"
+                       $ bob_encrypt_sign_for_alice_decrypt_verify True
+
         , testProperty "bob_encrypt_for_alice_decrypt_short"
                        bob_encrypt_for_alice_decrypt_short
         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
@@ -33,20 +39,27 @@ tests = [ testProperty "bob_encrypt_for_alice_decrypt"
 hush :: Monad m => m (Either e a) -> MaybeT m a
 hush = MaybeT . liftM (either (const Nothing) Just)
 
-bob_encrypt_for_alice_decrypt :: Plain -> Property
-bob_encrypt_for_alice_decrypt plain =
+withPassphraseCb :: String -> Ctx -> IO ()
+withPassphraseCb passphrase ctx = do
+    setPassphraseCallback ctx (Just callback)
+  where
+    callback _ _ _ = return (Just passphrase)
+
+bob_encrypt_for_alice_decrypt :: Bool -> Plain -> Property
+bob_encrypt_for_alice_decrypt passphrCb plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
             do -- encrypt
                Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-                       aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
-                       hush $ encrypt bCtx [aPubKey] NoFlag plain
+                   aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+                   hush $ encrypt bCtx [aPubKey] NoFlag plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
-                       decrypt aCtx enc
+               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
+                   when passphrCb $ withPassphraseCb "alice123" aCtx
+                   decrypt aCtx enc
 
                return $ fromRight dec
 
@@ -64,20 +77,21 @@ bob_encrypt_for_alice_decrypt_short plain =
 
                return $ fromRight dec
 
-bob_encrypt_sign_for_alice_decrypt_verify :: Plain -> Property
-bob_encrypt_sign_for_alice_decrypt_verify plain =
+bob_encrypt_sign_for_alice_decrypt_verify :: Bool -> Plain -> Property
+bob_encrypt_sign_for_alice_decrypt_verify passphrCb plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
             do -- encrypt
                Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-                       aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
-                       hush $ encryptSign bCtx [aPubKey] NoFlag plain
+                   aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+                   hush $ encryptSign bCtx [aPubKey] NoFlag plain
 
                -- decrypt
-               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
-                       decryptVerify aCtx enc
+               dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
+                   when passphrCb $ withPassphraseCb "alice123" aCtx
+                   decryptVerify aCtx enc
 
                return $ fromRight dec
 
