@@ -28,7 +28,7 @@ import Crypto.Gpgme.Internal
 listKeys :: Ctx            -- ^ context to operate in
          -> IncludeSecret  -- ^ whether to include the secrets
          -> IO [Key]
-listKeys (Ctx ctxPtr _) secret = do
+listKeys (Ctx {_ctx=ctxPtr}) secret = do
     peek ctxPtr >>= \ctx ->
         c'gpgme_op_keylist_start ctx nullPtr (fromSecret secret) >>= checkError "listKeys"
     let eof = 16383
@@ -49,7 +49,7 @@ getKey :: Ctx           -- ^ context to operate in
        -> Fpr           -- ^ fingerprint
        -> IncludeSecret -- ^ whether to include secrets when searching for the key
        -> IO (Maybe Key)
-getKey (Ctx ctxPtr _) fpr secret = do
+getKey (Ctx {_ctx=ctxPtr}) fpr secret = do
     key <- allocKey
     ret <- BS.useAsCString fpr $ \cFpr ->
         peek ctxPtr >>= \ctx ->

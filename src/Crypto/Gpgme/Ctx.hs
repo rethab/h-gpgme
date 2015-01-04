@@ -28,6 +28,10 @@ newCtx homedir localeStr protocol =
 
        ctx <- peek ctxPtr
 
+       -- find engine version
+       engInfo <- c'gpgme_ctx_get_engine_info ctx >>= peek
+       engVersion <- peekCString $ c'_gpgme_engine_info'version engInfo
+
        -- set locale
        locale <- newCString localeStr
        checkError "set_locale" =<< c'gpgme_set_locale ctx lcCtype locale
@@ -40,13 +44,13 @@ newCtx homedir localeStr protocol =
        checkError "set_engine_info" =<< c'gpgme_ctx_set_engine_info ctx
                             (fromProtocol protocol) nullPtr homedirPtr
 
-       return (Ctx ctxPtr version)
+       return (Ctx ctxPtr version protocol engVersion)
     where lcCtype :: CInt
           lcCtype = 0
 
 -- | Free a previously created 'Ctx'
 freeCtx :: Ctx -> IO ()
-freeCtx (Ctx ctxPtr _) =
+freeCtx (Ctx {_ctx=ctxPtr}) =
     do ctx <- peek ctxPtr
        c'gpgme_release ctx
        free ctxPtr
@@ -110,7 +114,7 @@ passphraseCb callback = do
 setPassphraseCallback :: Ctx                   -- ^ context
                       -> Maybe PassphraseCb    -- ^ a callback, or Nothing to disable
                       -> IO ()
-setPassphraseCallback (Ctx ctxPtr _) callback = do
+setPassphraseCallback (Ctx {_ctx=ctxPtr}) callback = do
     ctx <- peek ctxPtr
     let mode = case callback of
                    Nothing -> c'GPGME_PINENTRY_MODE_DEFAULT

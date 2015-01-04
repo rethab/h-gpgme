@@ -70,7 +70,7 @@ encryptIntern :: (C'gpgme_ctx_t
                   -> Flag
                   -> Plain
                   -> IO (Either [InvalidKey] Encrypted) 
-encryptIntern enc_op (Ctx ctxPtr _) recPtrs flag plain = do
+encryptIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
     BS.useAsCString plain $ \bs -> do
@@ -147,7 +147,7 @@ decryptIntern :: (C'gpgme_ctx_t
                   -> Ctx
                   -> Encrypted
                   -> IO (Either DecryptError Plain)
-decryptIntern dec_op (Ctx ctxPtr _) cipher = do
+decryptIntern dec_op (Ctx {_ctx=ctxPtr}) cipher = do
     -- init buffer with cipher
     cipherBufPtr <- malloc
     BS.useAsCString cipher $ \bs -> do

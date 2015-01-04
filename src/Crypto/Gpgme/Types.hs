@@ -18,8 +18,10 @@ data Protocol =
 -- | Context to be passed around with operations. Use 'newCtx' or
 --   'withCtx' in order to obtain an instance.
 data Ctx = Ctx {
-      _ctx :: Ptr C'gpgme_ctx_t
-    , _version :: String
+      _ctx             :: Ptr C'gpgme_ctx_t -- ^ context
+    , _version         :: String            -- ^ GPGME version
+    , _protocol        :: Protocol          -- ^ context protocol
+    , _engineVersion   :: String            -- ^ engine version
 }
 
 -- | a fingerprint
