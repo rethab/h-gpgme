@@ -2,6 +2,7 @@ module Crypto.Gpgme.Key (
       getKey
     , listKeys
       -- * Information about keys
+    , Validity (..)
     , KeySignature (..)
     , UserId (..)
     , KeyUserId (..)
