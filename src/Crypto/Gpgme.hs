@@ -38,6 +38,9 @@ module Crypto.Gpgme (
     , freeCtx
     , withCtx
     , setArmor
+      -- ** Passphrase callbacks
+    , PassphraseCb
+    , setPassphraseCallback
 
     -- currently not exported as it does not work as expected:
     -- , withPWCtx
