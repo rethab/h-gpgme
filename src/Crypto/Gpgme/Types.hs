@@ -72,12 +72,14 @@ toDecryptError 11  = BadPass
 toDecryptError x   = Unknown (fromIntegral x)
 
 -- | The validity of a user identity
-data Validity = ValidityUnknown
-              | ValidityUndefined
-              | ValidityNever
-              | ValidityMarginal
-              | ValidityFull
-              | ValidityUltimate
+data Validity =
+      ValidityUnknown
+    | ValidityUndefined
+    | ValidityNever
+    | ValidityMarginal
+    | ValidityFull
+    | ValidityUltimate
+    deriving (Show, Ord, Eq)
 
 -- | A public-key encryption algorithm
 data PubKeyAlgo =
