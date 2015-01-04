@@ -22,7 +22,7 @@ newCtx homedir localeStr protocol =
        version <- c'gpgme_check_version nullPtr >>= peekCString
 
        -- create context
-       ctxPtr <- malloc 
+       ctxPtr <- malloc
        checkError "gpgme_new" =<< c'gpgme_new ctxPtr
 
        ctx <- peek ctxPtr
@@ -71,9 +71,37 @@ withCtx homedir localeStr prot f = do
 -- >    withCtx homedir locale OpenPGP $ withArmor $ \ctx ->
 -- >        withKey ctx fpr NoSecret $ \pubkey ->
 -- >            encrypt ctx [pubkey] NoFlag plaintext
-
 withArmor :: (Ctx -> IO a) -> Ctx ->  IO a
 withArmor f ctx = do
     cctx <- peek $ _ctx ctx
     c'gpgme_set_armor cctx 1
     f ctx
+
+-- | A callback invoked when the engine requires a passphrase to
+-- proceed.
+type PassphraseCb =
+       String     -- ^ User ID hint
+    -> String     -- ^ Passphrase info
+    -> Bool       -- ^ @True@ if the previous attempt was bad
+    -> IO (Maybe String)
+
+passphraseCb :: PassphraseCb -> IO C'gpgme_passphrase_cb_t
+passphraseCb callback = do
+    let go _ hint info prev_bad fd = do
+            hint' <- peekCString hint
+            info' <- peekCString info
+            result <- callback hint' info' (prev_bad /= 0)
+            case result of
+              Just phrase -> withCStringLen phrase $ \(s,len) -> do
+                  c'gpgme_io_writen fd (castPtr s) (fromIntegral len)
+                  return 0
+              Nothing     -> return errCanceled
+        errCanceled = 99 -- TODO: Use constant
+    mk'gpgme_passphrase_cb_t go
+
+-- | Set the callback invoked when a passphrase is required from the user
+setPassphraseCallback :: Ctx -> PassphraseCb -> IO ()
+setPassphraseCallback (Ctx ctxPtr _) callback = do
+    cb <- passphraseCb callback
+    ctx <- peek ctxPtr
+    c'gpgme_set_passphrase_cb ctx cb nullPtr
