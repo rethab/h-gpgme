@@ -13,6 +13,7 @@ data Protocol =
     | GPGCONF
     | OpenPGP
     | UNKNOWN
+    deriving (Show, Eq, Ord)
 
 -- | Context to be passed around with operations. Use 'newCtx' or
 --   'withCtx' in order to obtain an instance.
@@ -54,10 +55,12 @@ withKeyPtr (Key fPtr) f = withForeignPtr fPtr f
 data IncludeSecret =
       WithSecret -- ^ do not include secret keys
     | NoSecret   -- ^ include secret keys
+    deriving (Show, Eq, Ord)
 
 data Flag =
       AlwaysTrust
     | NoFlag
+    deriving (Show, Eq, Ord)
 
 -- | A GPGME error.
 --
@@ -82,7 +85,7 @@ data DecryptError =
     | Failed              -- ^ not a valid cipher
     | BadPass             -- ^ passphrase for secret was wrong
     | Unknown GpgmeError  -- ^ something else went wrong
-    deriving (Eq, Show)
+    deriving (Show, Eq, Ord)
 
 toDecryptError :: C'gpgme_error_t -> DecryptError
 toDecryptError n =
