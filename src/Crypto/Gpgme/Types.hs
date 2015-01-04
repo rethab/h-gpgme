@@ -4,6 +4,8 @@ import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import Foreign
 import qualified Foreign.Concurrent as FC
+import Foreign.C.String (peekCString)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | the protocol to be used in the crypto engine
 data Protocol =
@@ -19,7 +21,7 @@ data Ctx = Ctx {
     , _version :: String
 }
 
--- | a fingerprint 
+-- | a fingerprint
 type Fpr = BS.ByteString
 
 -- | a plaintext
@@ -57,19 +59,36 @@ data Flag =
       AlwaysTrust
     | NoFlag
 
+-- | A GPGME error.
+--
+-- Errors in GPGME consist of two parts: a code indicating the nature of the fault,
+-- and a source indicating from which subsystem the error originated.
+newtype GpgmeError = GpgmeError C'gpgme_error_t
+                   deriving (Show, Ord, Eq)
+
+-- | An explanatory string for a GPGME error.
+errorString :: GpgmeError -> String
+errorString (GpgmeError n) =
+    unsafePerformIO $ c'gpgme_strerror n >>= peekCString
+
+-- | An explanatory string describing the source of a GPGME error
+sourceString :: GpgmeError -> String
+sourceString (GpgmeError n) =
+    unsafePerformIO $ c'gpgme_strsource n >>= peekCString
+
 -- | error indicating what went wrong in decryption
 data DecryptError =
-      NoData      -- ^ no data to decrypt
-    | Failed      -- ^ not a valid cipher
-    | BadPass     -- ^ passphrase for secret was wrong
-    | Unknown Int -- ^ something else went wrong
+      NoData              -- ^ no data to decrypt
+    | Failed              -- ^ not a valid cipher
+    | BadPass             -- ^ passphrase for secret was wrong
+    | Unknown GpgmeError  -- ^ something else went wrong
     deriving (Eq, Show)
 
 toDecryptError :: C'gpgme_err_code_t -> DecryptError
 toDecryptError 58  = NoData
 toDecryptError 152 = Failed
 toDecryptError 11  = BadPass
-toDecryptError x   = Unknown (fromIntegral x)
+toDecryptError x   = Unknown (GpgmeError x)
 
 -- | The validity of a user identity
 data Validity =

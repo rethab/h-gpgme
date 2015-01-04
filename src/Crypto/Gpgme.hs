@@ -69,7 +69,12 @@ module Crypto.Gpgme (
     , decryptVerify
     , decryptVerify'
 
-      -- * Other Types
+    -- * Error handling
+    , GpgmeError
+    , errorString
+    , sourceString
+
+    -- * Other Types
     , Fpr
     , Encrypted
     , Plain
