@@ -3,6 +3,7 @@ module Crypto.Gpgme.Key (
     , listKeys
       -- * Information about keys
     , Validity (..)
+    , PubKeyAlgo (..)
     , KeySignature (..)
     , UserId (..)
     , KeyUserId (..)

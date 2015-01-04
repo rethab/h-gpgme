@@ -14,8 +14,10 @@ tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "alice_list_secret_keys" alice_list_secret_keys
         , testCase "get_inexistent_from_alice" get_inexistent_pub_from_alice
         , testCase "check_alice_pub_user_ids" check_alice_pub_user_ids
+        , testCase "check_alice_pub_subkeys" check_alice_pub_subkeys
         ]
 
+alice_pub_fpr, bob_pub_fpr :: Fpr
 alice_pub_fpr = "EAACEB8A"
 bob_pub_fpr = "6C4FB8F2"
 
@@ -66,3 +68,14 @@ check_alice_pub_user_ids = do
            userName uid @?= "Alice"
            userEmail uid @?= "alice@email.com"
            userComment uid @?= "Test User A"
+
+check_alice_pub_subkeys :: Assertion
+check_alice_pub_subkeys = do
+    withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        do Just key <- getKey ctx alice_pub_fpr NoSecret
+           let subs = keySubKeys key
+           length subs @?= 2
+           let sub = head subs
+           subkeyAlgorithm sub @?= Rsa
+           subkeyLength sub @?= 2048
+           subkeyKeyId sub @?= "6B9809775CF91391"
