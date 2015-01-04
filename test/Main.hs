@@ -7,8 +7,11 @@ import CtxTest
 import CryptoTest 
 
 main :: IO ()
-main = defaultMain $ testGroup "tests"
-    [ testGroup "key"    KeyTest.tests
-    , testGroup "ctx"    CtxTest.tests
-    , testGroup "crypto" CryptoTest.tests
-    ]
+main = do
+    passphraseCbTests <- CryptoTest.cbTests
+    defaultMain $ testGroup "tests"
+        [ testGroup "key"    KeyTest.tests
+        , testGroup "ctx"    CtxTest.tests
+        , CryptoTest.tests
+        , passphraseCbTests
+        ]

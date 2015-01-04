@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
-module CryptoTest (tests) where
+module CryptoTest (tests, cbTests) where
 
 import Control.Monad (liftM, when)
 import Control.Monad.Trans.Maybe
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
-import Test.Tasty (TestTree)
+import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Test.Tasty.QuickCheck
 import Test.HUnit hiding (assert)
@@ -15,26 +15,35 @@ import Test.QuickCheck.Monadic
 import Crypto.Gpgme
 import TestUtil
 
-tests :: [TestTree]
-tests = [ testProperty "bob_encrypt_for_alice_decrypt"
-                       $ bob_encrypt_for_alice_decrypt False
-        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
-                       $ bob_encrypt_sign_for_alice_decrypt_verify False
+tests :: TestTree
+tests = testGroup "crypto"
+    [ testProperty "bob_encrypt_for_alice_decrypt"
+                   $ bob_encrypt_for_alice_decrypt False
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
+                   $ bob_encrypt_sign_for_alice_decrypt_verify False
 
-        , testProperty "bob_encrypt_for_alice_decrypt_with_passphrase_cb"
-                       $ bob_encrypt_for_alice_decrypt True
-        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb"
-                       $ bob_encrypt_sign_for_alice_decrypt_verify True
+    , testProperty "bob_encrypt_for_alice_decrypt_short"
+                   bob_encrypt_for_alice_decrypt_short
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
+                   bob_encrypt_sign_for_alice_decrypt_verify_short
 
-        , testProperty "bob_encrypt_for_alice_decrypt_short"
-                       bob_encrypt_for_alice_decrypt_short
-        , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
-                       bob_encrypt_sign_for_alice_decrypt_verify_short
+    , testCase "decrypt_garbage" decrypt_garbage
+    , testCase "encrypt_wrong_key" encrypt_wrong_key
+    , testCase "bob_encrypt_symmetrically" bob_encrypt_symmetrically
+    ]
 
-        , testCase "decrypt_garbage" decrypt_garbage
-        , testCase "encrypt_wrong_key" encrypt_wrong_key
-        , testCase "bob_encrypt_symmetrically" bob_encrypt_symmetrically
-        ]
+cbTests :: IO TestTree
+cbTests = do
+    supported <- withCtx "test/bob" "C" OpenPGP $ \ctx ->
+        return $ isPassphraseCbSupported ctx
+    if supported
+       then return $ testGroup "passphrase-cb"
+                [ testProperty "bob_encrypt_for_alice_decrypt"
+                               $ bob_encrypt_for_alice_decrypt True
+                , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb"
+                               $ bob_encrypt_sign_for_alice_decrypt_verify True
+                ]
+       else return $ testGroup "passphrase-cb" []
 
 hush :: Monad m => m (Either e a) -> MaybeT m a
 hush = MaybeT . liftM (either (const Nothing) Just)
@@ -110,7 +119,7 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
                return $ fromRight dec
 
 encrypt_wrong_key :: Assertion
-encrypt_wrong_key = do 
+encrypt_wrong_key = do
     res <- encrypt' "test/bob" "INEXISTENT" "plaintext"
     assertBool "should fail" (isLeft res)
     let err = fromLeft res
