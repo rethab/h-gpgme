@@ -4,7 +4,6 @@ module CryptoTest (tests) where
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString as BS
-import Test.Framework.Core (Test)
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 import Test.HUnit hiding (assert)
@@ -14,7 +13,6 @@ import Test.QuickCheck
 import Crypto.Gpgme
 import TestUtil
 
-tests :: [Test]
 tests = [ testProperty "bob_encrypt_for_alice_decrypt"
                        bob_encrypt_for_alice_decrypt
         , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
