@@ -2,6 +2,7 @@ module Crypto.Gpgme.Ctx where
 
 import Bindings.Gpgme
 import Control.Monad (when)
+import Data.List (isPrefixOf)
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -74,6 +75,21 @@ setArmor :: Bool -> Ctx -> IO ()
 setArmor armored (Ctx {_ctx = ctxPtr}) = do
     ctx <- peek ctxPtr
     c'gpgme_set_armor ctx (if armored then 1 else 0)
+
+-- | Are passphrase callbacks supported?
+--
+-- This functionality is known to be broken in some gpg versions,
+-- see 'setPassphraseCb' for details.
+isPassphraseCbSupported :: Ctx -> Bool
+isPassphraseCbSupported ctx
+  | OpenPGP <- _protocol ctx =
+    case () of
+      _ | "2.0" `isPrefixOf` ver  -> False
+        | "1." `isPrefixOf` ver   -> False
+        | otherwise               -> True
+  | otherwise = True   -- give the user the benefit of a doubt
+  where
+    ver = _engineVersion ctx
 
 -- | A callback invoked when the engine requires a passphrase to
 -- proceed. The callback should return @Just@ the requested passphrase,

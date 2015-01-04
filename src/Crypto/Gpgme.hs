@@ -39,6 +39,7 @@ module Crypto.Gpgme (
     , withCtx
     , setArmor
       -- ** Passphrase callbacks
+    , isPassphraseCbSupported
     , PassphraseCb
     , setPassphraseCallback
 
