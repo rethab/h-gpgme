@@ -84,11 +84,13 @@ data DecryptError =
     | Unknown GpgmeError  -- ^ something else went wrong
     deriving (Eq, Show)
 
-toDecryptError :: C'gpgme_err_code_t -> DecryptError
-toDecryptError 58  = NoData
-toDecryptError 152 = Failed
-toDecryptError 11  = BadPass
-toDecryptError x   = Unknown (GpgmeError x)
+toDecryptError :: C'gpgme_error_t -> DecryptError
+toDecryptError n =
+    case unsafePerformIO $ c'gpgme_err_code n of
+        58   -> NoData
+        152  -> Failed
+        11   -> BadPass
+        x    -> Unknown (GpgmeError x)
 
 -- | The validity of a user identity
 data Validity =
