@@ -1,10 +1,12 @@
 module CtxTest (tests) where
 
-import Test.Framework.Providers.HUnit
+import Test.Tasty (TestTree)
+import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
 import Crypto.Gpgme
 
+tests :: [TestTree]
 tests = [ testCase "run_action_with_ctx" run_action_with_ctx
         -- , testCase "unlock_with_pw" unlock_with_pw
         ]
