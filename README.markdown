@@ -24,3 +24,8 @@ Changelog
 
 - 0.2.0.0
  - Added withArmor for ASCII-armored output (thanks yaccz)
+
+- 0.3.0.0 (WIP)
+ - Added listKeys (thanks bgamari)
+ - Added setArmor
+ - withArmor is deprecated
