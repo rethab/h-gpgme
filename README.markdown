@@ -8,12 +8,12 @@ Examples
 let alice_pub_fpr = "EAACEB8A"
 
 -- encrypt
-enc <- withCtx "test/bob" "C" openPGP $ \bCtx ->
-         withKey bCtx alice_pub_fpr noSecret $ \aPubKey ->
-            encrypt bCtx [aPubKey] noFlag plain
+enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
+         withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
+            encrypt bCtx [aPubKey] NoFlag plain
 
 -- decrypt
-dec <- withCtx "alice123" "test/alice" "C" openPGP $ \aCtx ->
+dec <- withCtx "alice123" "test/alice" "C" OpenPGP $ \aCtx ->
          decrypt aCtx (fromJustAndRight enc)
 ```
 
