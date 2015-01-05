@@ -2,12 +2,14 @@
 module KeyTest (tests) where
 
 import Data.Maybe
-import Test.Framework.Providers.HUnit
+import Test.Tasty (TestTree)
+import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
 import Crypto.Gpgme
-import Crypto.Gpgme.Key
+import TestUtil
 
+tests :: [TestTree]
 tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "get_bob_pub_from_alice" get_bob_pub_from_alice
         , testCase "alice_list_pub_keys" alice_list_pub_keys
@@ -16,10 +18,6 @@ tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "check_alice_pub_user_ids" check_alice_pub_user_ids
         , testCase "check_alice_pub_subkeys" check_alice_pub_subkeys
         ]
-
-alice_pub_fpr, bob_pub_fpr :: Fpr
-alice_pub_fpr = "EAACEB8A"
-bob_pub_fpr = "6C4FB8F2"
 
 get_alice_pub_from_alice :: Assertion
 get_alice_pub_from_alice = do

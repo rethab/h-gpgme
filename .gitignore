@@ -1,6 +1,10 @@
 .cabal-sandbox/
 cabal.sandbox.config
 dist/
-test/alice/random_seed
-test/bob/random_seed
 .hpc/
+test/alice/random_seed
+test/alice/.gpg-v21-migrated
+test/alice/private-keys-v1.d/
+test/bob/random_seed
+test/bob/.gpg-v21-migrated
+test/bob/private-keys-v1.d/

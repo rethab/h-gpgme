@@ -26,7 +26,7 @@ import Crypto.Gpgme.Internal
 
 -- | Returns a list of known 'Key's from the @context@.
 listKeys :: Ctx            -- ^ context to operate in
-         -> IncludeSecret  -- ^ fingerprint
+         -> IncludeSecret  -- ^ whether to include the secrets
          -> IO [Key]
 listKeys (Ctx ctxPtr _) secret = do
     peek ctxPtr >>= \ctx ->

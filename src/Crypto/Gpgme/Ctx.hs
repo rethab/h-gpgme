@@ -71,9 +71,15 @@ withCtx homedir localeStr prot f = do
 -- >    withCtx homedir locale OpenPGP $ withArmor $ \ctx ->
 -- >        withKey ctx fpr NoSecret $ \pubkey ->
 -- >            encrypt ctx [pubkey] NoFlag plaintext
-
 withArmor :: (Ctx -> IO a) -> Ctx ->  IO a
 withArmor f ctx = do
     cctx <- peek $ _ctx ctx
     c'gpgme_set_armor cctx 1
     f ctx
+{-# DEPRECATED withArmor "Use 'setArmor'." #-}
+
+-- | Sets armor output on ctx
+setArmor :: Bool -> Ctx -> IO ()
+setArmor armored (Ctx {_ctx = ctxPtr}) = do
+    ctx <- peek ctxPtr
+    c'gpgme_set_armor ctx (if armored then 1 else 0)
