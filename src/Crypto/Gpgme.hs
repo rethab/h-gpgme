@@ -38,6 +38,7 @@ module Crypto.Gpgme (
     , freeCtx
     , withCtx
     , withArmor
+    , setArmor
 
     -- currently not exported as it does not work as expected:
     -- , withPWCtx
