@@ -34,9 +34,7 @@ bob_encrypt_for_alice_decrypt plain =
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
-            do let alice_pub_fpr = "EAACEB8A"
-
-               -- encrypt
+            do -- encrypt
                enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
                        withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
                            encrypt bCtx [aPubKey] NoFlag plain
@@ -53,9 +51,7 @@ bob_encrypt_for_alice_decrypt_short plain =
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
-            do let alice_pub_fpr = "EAACEB8A"
-
-               -- encrypt
+            do -- encrypt
                enc <- encrypt' "test/bob" alice_pub_fpr plain
 
                -- decrypt
@@ -69,9 +65,7 @@ bob_encrypt_sign_for_alice_decrypt_verify plain =
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
-            do let alice_pub_fpr = "EAACEB8A"
-
-               -- encrypt
+            do -- encrypt
                enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
                        withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
                            encryptSign bCtx [aPubKey] NoFlag plain
@@ -88,9 +82,7 @@ bob_encrypt_sign_for_alice_decrypt_verify_short plain =
         dec <- run encr_and_decr
         assert $ dec == plain
   where encr_and_decr =
-            do let alice_pub_fpr = "EAACEB8A"
-
-               -- encrypt
+            do -- encrypt
                enc <- encryptSign' "test/bob" alice_pub_fpr plain
 
                -- decrypt

@@ -1,8 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
 module TestUtil where
 
 import qualified Data.ByteString as BS
 import Data.Maybe (fromJust)
 import Test.QuickCheck
+
+alice_pub_fpr :: BS.ByteString
+alice_pub_fpr = "EAACEB8A"
+
+bob_pub_fpr :: BS.ByteString
+bob_pub_fpr = "6C4FB8F2"
 
 instance Arbitrary BS.ByteString where
     arbitrary = fmap BS.pack arbitrary
