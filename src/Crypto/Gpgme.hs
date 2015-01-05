@@ -46,6 +46,15 @@ module Crypto.Gpgme (
     , Key
     , getKey
     , listKeys
+    -- * Information about keys
+    , Validity (..)
+    , PubKeyAlgo (..)
+    , KeySignature (..)
+    , UserId (..)
+    , KeyUserId (..)
+    , keyUserIds
+    , SubKey (..)
+    , keySubKeys
 
     -- * Encryption
     , encrypt
