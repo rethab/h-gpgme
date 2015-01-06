@@ -64,20 +64,6 @@ withCtx homedir localeStr prot f = do
     freeCtx ctx
     return res
 
--- | Sets the produced output to be ASCII armored
---
---   Inject between `withCtx' and your 'IO a' like
---
--- >    withCtx homedir locale OpenPGP $ withArmor $ \ctx ->
--- >        withKey ctx fpr NoSecret $ \pubkey ->
--- >            encrypt ctx [pubkey] NoFlag plaintext
-withArmor :: (Ctx -> IO a) -> Ctx ->  IO a
-withArmor f ctx = do
-    cctx <- peek $ _ctx ctx
-    c'gpgme_set_armor cctx 1
-    f ctx
-{-# DEPRECATED withArmor "Use 'setArmor'." #-}
-
 -- | Sets armor output on ctx
 setArmor :: Bool -> Ctx -> IO ()
 setArmor armored (Ctx {_ctx = ctxPtr}) = do

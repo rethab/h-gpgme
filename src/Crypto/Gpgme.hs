@@ -1,7 +1,7 @@
 
 -- |
 -- Module      : Crypto.Gpgme
--- Copyright   : (c) Reto Hablützel 2014
+-- Copyright   : (c) Reto Hablützel 2015
 -- License     : MIT
 --
 -- Maintainer  : rethab@rethab.ch
@@ -19,16 +19,16 @@
 --
 -- == Example (from the tests):
 --
--- >let alice_pub_fpr = "EAACEB8A"
+-- >let alice_pub_fpr = "EAACEB8A"                                      
+-- >                                                                    
+-- >Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+-- >        aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret      
+-- >        fromRight $ encrypt bCtx [aPubKey] NoFlag plain             
+-- >                                                                    
+-- >-- decrypt                                                          
+-- >dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->                  
+-- >        decrypt aCtx enc                                            
 -- >
--- >-- encrypt
--- >enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
--- >          withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
--- >              encrypt bCtx [aPubKey] NoFlag plain
--- >
--- >-- decrypt
--- >dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
--- >        decrypt aCtx (fromJustAndRight enc)
 --
 
 module Crypto.Gpgme (
@@ -37,7 +37,6 @@ module Crypto.Gpgme (
     , newCtx
     , freeCtx
     , withCtx
-    , withArmor
     , setArmor
 
     -- currently not exported as it does not work as expected:
