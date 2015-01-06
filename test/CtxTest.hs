@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CtxTest (tests) where
 
+import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Class (lift)
 import qualified Data.ByteString as BS
 
 import Test.Tasty (TestTree)
@@ -25,17 +27,17 @@ run_action_with_ctx = do
 set_armor :: Assertion
 set_armor = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
-    enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-              do Just aPubKey <- getKey bCtx alice_pub_fpr NoSecret
-                 setArmor True bCtx
-                 encrypt bCtx [aPubKey] NoFlag "plaintext"
-    (armorPrefix `BS.isPrefixOf` fromRight enc) @? ("Armored must start with " ++ show armorPrefix)
+    enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              lift $ setArmor True bCtx
+              lift $ encrypt bCtx [aPubKey] NoFlag "plaintext"
+    (armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Armored must start with " ++ show armorPrefix)
 
 unset_armor :: Assertion
 unset_armor = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
-    enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-              do Just aPubKey <- getKey bCtx alice_pub_fpr NoSecret
-                 setArmor False bCtx
-                 encrypt bCtx [aPubKey] NoFlag "plaintext"
-    (not $ armorPrefix `BS.isPrefixOf` fromRight enc) @? ("Binary must not start with " ++ show armorPrefix)
+    enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              lift $ setArmor False bCtx
+              lift $ encrypt bCtx [aPubKey] NoFlag "plaintext"
+    (not $ armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Binary must not start with " ++ show armorPrefix)

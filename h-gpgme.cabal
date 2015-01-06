@@ -33,6 +33,7 @@ library
                      , bindings-gpgme >= 0.1.6 && <0.2
                      , bytestring     >= 0.9
                      , either         >= 4.3 && <5.0
+                     , time           >= 1.4 && <2.0
                      , unix           >= 2.5
   default-language:    Haskell2010
 
@@ -48,6 +49,7 @@ test-suite tests
                      , bytestring     >= 0.9
                      , either         >= 4.3 && <5.0
                      , transformers   >= 0.3 && <0.5
+                     , time           >= 1.4 && <2.0
                      , unix           >= 2.5
 
                      , HUnit                      >= 1.2  && <1.3

@@ -1,11 +1,25 @@
 module Crypto.Gpgme.Key (
       getKey
     , listKeys
+      -- * Information about keys
+    , Validity (..)
+    , PubKeyAlgo (..)
+    , KeySignature (..)
+    , UserId (..)
+    , KeyUserId (..)
+    , keyUserIds
+    , SubKey (..)
+    , keySubKeys
     ) where
 
 import Bindings.Gpgme
+import Control.Applicative
 import qualified Data.ByteString as BS
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import Foreign
+import Foreign.C
+import System.IO.Unsafe
 
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
@@ -44,3 +58,109 @@ getKey (Ctx ctxPtr _) fpr secret = do
     if ret == noError
         then return . Just $ key
         else return Nothing
+
+-- | A key signature
+data KeySignature = KeySig { keysigAlgorithm :: PubKeyAlgo
+                           , keysigKeyId     :: String
+                           , keysigTimestamp :: Maybe UTCTime
+                           , keysigExpires   :: Maybe UTCTime
+                           , keysigUserId    :: UserId
+                             -- TODO: Notations
+                           }
+
+readTime :: CLong -> Maybe UTCTime
+readTime (-1) = Nothing
+readTime 0    = Nothing
+readTime t    = Just $ posixSecondsToUTCTime $ realToFrac t
+
+readKeySignatures :: C'gpgme_key_sig_t -> IO [KeySignature]
+readKeySignatures p0 = peekList c'_gpgme_key_sig'next p0 >>= mapM readSig
+  where
+    readSig sig =
+        KeySig <$> pure (toPubKeyAlgo $ c'_gpgme_key_sig'pubkey_algo sig)
+               <*> peekCString (c'_gpgme_key_sig'keyid sig)
+               <*> pure (readTime $ c'_gpgme_key_sig'timestamp sig)
+               <*> pure (readTime $ c'_gpgme_key_sig'expires sig)
+               <*> signerId
+      where
+        signerId :: IO UserId
+        signerId =
+            UserId <$> peekCString (c'_gpgme_key_sig'uid sig)
+                   <*> peekCString (c'_gpgme_key_sig'name sig)
+                   <*> peekCString (c'_gpgme_key_sig'email sig)
+                   <*> peekCString (c'_gpgme_key_sig'comment sig)
+
+-- | A user ID consisting of a name, comment, and email address.
+data UserId = UserId { userId         :: String
+                     , userName       :: String
+                     , userEmail      :: String
+                     , userComment    :: String
+                     }
+            deriving (Ord, Eq, Show)
+
+-- | A user ID
+data KeyUserId = KeyUserId { keyuserValidity   :: Validity
+                           , keyuserId         :: UserId
+                           , keyuserSignatures :: [KeySignature]
+                           }
+
+peekList :: Storable a => (a -> Ptr a) -> Ptr a -> IO [a]
+peekList nextFunc = go []
+  where
+    go accum p
+      | p == nullPtr  = return accum
+      | otherwise     = do v <- peek p
+                           go (v : accum) (nextFunc v)
+
+keyUserIds' :: Key -> IO [KeyUserId]
+keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
+    key' <- peek keyPtr >>= peek
+    peekList c'_gpgme_user_id'next (c'_gpgme_key'uids key') >>= mapM readKeyUserId
+  where
+    readKeyUserId :: C'_gpgme_user_id -> IO KeyUserId
+    readKeyUserId uid =
+        KeyUserId <$> pure (toValidity $ c'_gpgme_user_id'validity uid)
+                  <*> userId'
+                  <*> readKeySignatures (c'_gpgme_user_id'signatures uid)
+      where
+        userId' :: IO UserId
+        userId' =
+            UserId <$> peekCString (c'_gpgme_user_id'uid uid)
+                   <*> peekCString (c'_gpgme_user_id'name uid)
+                   <*> peekCString (c'_gpgme_user_id'email uid)
+                   <*> peekCString (c'_gpgme_user_id'comment uid)
+
+keyUserIds :: Key -> [KeyUserId]
+keyUserIds = unsafePerformIO . keyUserIds'
+
+data SubKey = SubKey { subkeyAlgorithm    :: PubKeyAlgo
+                     , subkeyLength       :: Int
+                     , subkeyKeyId        :: String
+                     , subkeyFpr          :: Fpr
+                     , subkeyTimestamp    :: Maybe UTCTime
+                     , subkeyExpires      :: Maybe UTCTime
+                     , subkeyCardNumber   :: Maybe String
+                     }
+
+keySubKeys' :: Key -> IO [SubKey]
+keySubKeys' key = withForeignPtr (unKey key) $ \keyPtr -> do
+    key' <- peek keyPtr >>= peek
+    peekList c'_gpgme_subkey'next (c'_gpgme_key'subkeys key') >>= mapM readSubKey
+  where
+    readSubKey :: C'_gpgme_subkey -> IO SubKey
+    readSubKey sub =
+        SubKey <$> pure (toPubKeyAlgo $ c'_gpgme_subkey'pubkey_algo sub)
+               <*> pure (fromIntegral $ c'_gpgme_subkey'length sub)
+               <*> peekCString (c'_gpgme_subkey'keyid sub)
+               <*> BS.packCString (c'_gpgme_subkey'keyid sub)
+               <*> pure (readTime $ c'_gpgme_subkey'timestamp sub)
+               <*> pure (readTime $ c'_gpgme_subkey'expires sub)
+               <*> orNull peekCString (c'_gpgme_subkey'card_number sub)
+
+orNull :: (Ptr a -> IO b) -> Ptr a -> IO (Maybe b)
+orNull f ptr
+  | ptr == nullPtr = return Nothing
+  | otherwise      = Just <$> f ptr
+
+keySubKeys :: Key -> [SubKey]
+keySubKeys = unsafePerformIO . keySubKeys'

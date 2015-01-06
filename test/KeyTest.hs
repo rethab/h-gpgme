@@ -15,6 +15,8 @@ tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "alice_list_pub_keys" alice_list_pub_keys
         , testCase "alice_list_secret_keys" alice_list_secret_keys
         , testCase "get_inexistent_from_alice" get_inexistent_pub_from_alice
+        , testCase "check_alice_pub_user_ids" check_alice_pub_user_ids
+        , testCase "check_alice_pub_subkeys" check_alice_pub_subkeys
         ]
 
 get_alice_pub_from_alice :: Assertion
@@ -34,6 +36,9 @@ alice_list_pub_keys = do
     withCtx "test/alice" "C" OpenPGP $ \ctx ->
         do keys <- listKeys ctx NoSecret
            length keys @?= 2
+           let keyIds = [["163EC68CCF3FBF8E","DD2469546C4FB8F2"],
+                         ["6B9809775CF91391","3BA69AA2EAACEB8A"]]
+           map (map subkeyKeyId . keySubKeys) keys @?= keyIds
 
 alice_list_secret_keys :: Assertion
 alice_list_secret_keys = do
@@ -47,3 +52,28 @@ get_inexistent_pub_from_alice = do
     withCtx "test/alice/" "C" OpenPGP $ \ctx ->
         do key <- getKey ctx inexistent_fpr NoSecret
            isNothing key @? "existing " ++ show inexistent_fpr
+
+check_alice_pub_user_ids :: Assertion
+check_alice_pub_user_ids = do
+    withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        do Just key <- getKey ctx alice_pub_fpr NoSecret
+           let uids = keyUserIds key
+           length uids @?= 1
+           let kuid = head uids
+               uid = keyuserId kuid
+           keyuserValidity kuid @?= ValidityUltimate
+           userId uid @?= "Alice (Test User A) <alice@email.com>"
+           userName uid @?= "Alice"
+           userEmail uid @?= "alice@email.com"
+           userComment uid @?= "Test User A"
+
+check_alice_pub_subkeys :: Assertion
+check_alice_pub_subkeys = do
+    withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        do Just key <- getKey ctx alice_pub_fpr NoSecret
+           let subs = keySubKeys key
+           length subs @?= 2
+           let sub = head subs
+           subkeyAlgorithm sub @?= Rsa
+           subkeyLength sub @?= 2048
+           subkeyKeyId sub @?= "6B9809775CF91391"
