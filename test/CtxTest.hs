@@ -26,16 +26,16 @@ set_armor :: Assertion
 set_armor = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
     enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-              withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
-                  do setArmor True bCtx
-                     encrypt bCtx [aPubKey] NoFlag "plaintext"
-    (armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Armored must start with " ++ show armorPrefix)
+              do Just aPubKey <- getKey bCtx alice_pub_fpr NoSecret
+                 setArmor True bCtx
+                 encrypt bCtx [aPubKey] NoFlag "plaintext"
+    (armorPrefix `BS.isPrefixOf` fromRight enc) @? ("Armored must start with " ++ show armorPrefix)
 
 unset_armor :: Assertion
 unset_armor = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
     enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx ->
-              withKey bCtx alice_pub_fpr NoSecret $ \aPubKey ->
-                  do setArmor False bCtx
-                     encrypt bCtx [aPubKey] NoFlag "plaintext"
-    (not $ armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Binary must not start with " ++ show armorPrefix)
+              do Just aPubKey <- getKey bCtx alice_pub_fpr NoSecret
+                 setArmor False bCtx
+                 encrypt bCtx [aPubKey] NoFlag "plaintext"
+    (not $ armorPrefix `BS.isPrefixOf` fromRight enc) @? ("Binary must not start with " ++ show armorPrefix)

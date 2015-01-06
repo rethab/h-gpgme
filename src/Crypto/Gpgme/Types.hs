@@ -3,6 +3,7 @@ module Crypto.Gpgme.Types where
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import Foreign
+import qualified Foreign.Concurrent as FC
 
 -- | the protocol to be used in the crypto engine
 data Protocol =
@@ -32,7 +33,20 @@ type InvalidKey = (String, Int)
 -- TODO map intot better error code
 
 -- | A key from the context
-newtype Key = Key { unKey :: Ptr C'gpgme_key_t }
+newtype Key = Key { unKey :: ForeignPtr C'gpgme_key_t }
+
+-- | Allocate a key
+allocKey :: IO Key
+allocKey = do
+    keyPtr <- malloc
+    let finalize = do
+            peek keyPtr >>= c'gpgme_key_unref
+            free keyPtr
+    Key `fmap` FC.newForeignPtr keyPtr finalize
+
+-- | Perform an action with the pointer to a 'Key'
+withKeyPtr :: Key -> (Ptr C'gpgme_key_t -> IO a) -> IO a
+withKeyPtr (Key fPtr) f = withForeignPtr fPtr f
 
 -- | Whether to include secret keys when searching
 data IncludeSecret =

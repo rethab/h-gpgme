@@ -47,8 +47,6 @@ module Crypto.Gpgme (
     , Key
     , getKey
     , listKeys
-    , freeKey
-    , withKey
 
     -- * Encryption
     , encrypt

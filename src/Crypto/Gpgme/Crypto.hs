@@ -13,7 +13,10 @@ module Crypto.Gpgme.Crypto (
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import Control.Monad (liftM)
+import Control.Monad.Trans.Either
 import Foreign
+import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import GHC.Ptr
 
 import Crypto.Gpgme.Ctx
@@ -36,17 +39,16 @@ encrypt' = encryptIntern' encrypt
 encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptSign' = encryptIntern' encryptSign
 
+orElse :: Monad m => m (Maybe a) -> e -> EitherT e m a
+orElse action err = EitherT $ maybe (Left err) return `liftM` action
+
 encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptIntern' encrFun gpgDir recFpr plain =
-    withCtx gpgDir locale OpenPGP $ \ctx ->
-        do mbRes <- withKey ctx recFpr NoSecret $ \pubKey ->
-                        encrFun ctx [pubKey] NoFlag plain
-           return $ mapErr mbRes
-  where mapErr Nothing = Left $ "no such key: " ++ show recFpr
-        mapErr (Just (Left err))  = Left (show err)
-        mapErr (Just (Right res)) = Right res
+    withCtx gpgDir locale OpenPGP $ \ctx -> runEitherT $
+        do pubKey <- getKey ctx recFpr NoSecret `orElse` ("no such key: " ++ show recFpr)
+           bimapEitherT show id $ EitherT $ encrFun ctx [pubKey] NoFlag plain
 
 -- | encrypt for a list of recipients
 encrypt :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted)
@@ -82,17 +84,12 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs flag plain = do
     resultBufPtr <- newDataBuffer
     resultBuf <- peek resultBufPtr
 
-    -- null terminated array of recipients
-    recArray <- if null recPtrs
-                    then return nullPtr
-                    else do keys <- mapM (peek . unKey) recPtrs
-                            newArray (keys ++ [nullPtr])
-
     ctx <- peek ctxPtr
 
     -- encrypt
-    checkError "op_encrypt" =<< enc_op ctx recArray (fromFlag flag)
-                                    plainBuf resultBuf
+    withKeyPtrArray recPtrs $ \recArray -> 
+        checkError "op_encrypt" =<< enc_op ctx recArray (fromFlag flag)
+                                        plainBuf resultBuf
     free plainBufPtr
 
     -- check whether all keys could be used for encryption
@@ -107,6 +104,13 @@ encryptIntern enc_op (Ctx ctxPtr _) recPtrs flag plain = do
     free resultBufPtr
 
     return res
+
+-- | Build a null-terminated array of pointers from a list of 'Key's
+withKeyPtrArray :: [Key] -> (Ptr C'gpgme_key_t -> IO a) -> IO a
+withKeyPtrArray [] f   = f nullPtr
+withKeyPtrArray keys f = do
+    arr <- newArray0 nullPtr =<< mapM (peek . unsafeForeignPtrToPtr . unKey) keys
+    f arr
 
 -- | Convenience wrapper around 'withCtx' and 'withKey' to
 --   decrypt a single ciphertext with its homedirectory.
