@@ -43,9 +43,6 @@ module Crypto.Gpgme (
     , PassphraseCb
     , setPassphraseCallback
 
-    -- currently not exported as it does not work as expected:
-    -- , withPWCtx
-    
     -- * Keys
     , Key
     , getKey
