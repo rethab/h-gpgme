@@ -8,6 +8,10 @@ module Crypto.Gpgme.Crypto (
     , decrypt'
     , decryptVerify
     , decryptVerify'
+    , verifyDetached
+    , verifyDetached'
+    , verifyPlain
+    , verifyPlain'
 
 ) where
 
@@ -174,6 +178,83 @@ decryptIntern dec_op (Ctx {_ctx=ctxPtr}) cipher = do
     free resultBufPtr
 
     return res
+
+-- | Verify a payload with a detached signature
+verifyDetached :: Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError VerificationResult)
+verifyDetached ctx sig dat = do
+    res <- verifyInternal go ctx sig dat
+    return $ fmap fst res
+    where
+        go ctx sig dat = do
+            errcode <- c'gpgme_op_verify ctx sig dat 0
+            return (errcode, ())
+
+-- | Convenience wrapper around 'withCtx' to
+--   verify a single detached signature with its homedirectory.
+verifyDetached' :: String -> Signature -> BS.ByteString -> IO (Either GpgmeError VerificationResult)
+verifyDetached' gpgDir sig dat =
+    withCtx gpgDir locale OpenPGP $ \ctx ->
+        verifyDetached ctx sig dat
+
+-- | Verify a payload with a plain signature
+verifyPlain :: Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
+verifyPlain = verifyInternal go
+    where
+        go ctx sig dat = do
+            -- init buffer for result
+            resultBufPtr <- newDataBuffer
+            resultBuf <- peek resultBufPtr
+
+            errcode <- c'gpgme_op_verify ctx sig dat resultBuf
+
+            let res = if errcode /= noError
+                        then mempty
+                        else collectResult resultBuf
+
+            free resultBufPtr
+
+            return (errcode, res)
+
+-- | Convenience wrapper around 'withCtx' to
+--   verify a single plain signature with its homedirectory.
+verifyPlain' :: String -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
+verifyPlain' gpgDir sig dat =
+    withCtx gpgDir locale OpenPGP $ \ctx ->
+        verifyPlain ctx sig dat
+
+verifyInternal :: (C'gpgme_ctx_t -> C'gpgme_data_t -> C'gpgme_data_t -> IO (C'gpgme_error_t, a))-> Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, a))
+verifyInternal ver_op (Ctx {_ctx=ctxPtr}) sig dat = do
+    -- init buffer with signature
+    sigBufPtr <- malloc
+    BS.useAsCString sig $ \bs -> do
+        let copyData = 1 -- gpgme shall copy data, as bytestring will free it
+        let siglen = fromIntegral (BS.length sig)
+        ret <- c'gpgme_data_new_from_mem sigBufPtr bs siglen copyData
+        checkError "data_new_from_mem" ret
+    sigBuf <- peek sigBufPtr
+
+    -- init buffer with data
+    datBufPtr <- malloc
+    BS.useAsCString dat $ \bs -> do
+        let copyData = 1 -- gpgme shall copy data, as bytestring will free it
+        let datlen = fromIntegral (BS.length dat)
+        ret <- c'gpgme_data_new_from_mem datBufPtr bs datlen copyData
+        checkError "data_new_from_mem" ret
+    datBuf <- peek datBufPtr
+
+    ctx <- peek ctxPtr
+
+    -- verify
+    (errcode, res) <- ver_op ctx sigBuf datBuf
+
+    let res' = if errcode /= noError
+                then Left  (GpgmeError errcode)
+                else Right (collectSignatures ctx, res)
+
+    free sigBufPtr
+    free datBufPtr
+
+    return res'
 
 newDataBuffer :: IO (Ptr C'gpgme_data_t)
 newDataBuffer = do

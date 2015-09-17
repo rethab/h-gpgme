@@ -2,6 +2,7 @@ module Crypto.Gpgme.Types where
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import Data.Maybe(catMaybes)
 import Foreign
 import qualified Foreign.Concurrent as FC
 import Foreign.C.String (peekCString)
@@ -32,6 +33,43 @@ type Plain = BS.ByteString
 
 -- | an ciphertext
 type Encrypted = BS.ByteString
+
+-- | a signature
+type Signature = BS.ByteString
+
+-- | the summary of a signature status
+data SignatureSummary =
+      BadPolicy                        -- ^ A policy requirement was not met
+    | CrlMissing                       -- ^ The CRL is not available
+    | CrlTooOld                        -- ^ Available CRL is too old
+    | Green                            -- ^ The signature is good but one might want to display some extra information
+    | KeyExpired                       -- ^ The key or one of the certificates has expired
+    | KeyMissing                       -- ^ Can’t verify due to a missing key or certificate
+    | KeyRevoked                       -- ^ The key or at least one certificate has been revoked
+    | Red                              -- ^ The signature is bad
+    | SigExpired                       -- ^ The signature has expired
+    | SysError                         -- ^ A system error occured
+    | UnknownSummary C'gpgme_sigsum_t  -- ^ The summary is something else
+    | Valid                            -- ^ The signature is fully valid
+    deriving (Show, Eq, Ord)
+
+-- | Translate the gpgme_sigsum_t bit vector to a list of SignatureSummary
+toSignatureSummaries :: C'gpgme_sigsum_t -> [SignatureSummary]
+toSignatureSummaries x = catMaybes $ map (\(mask, val) -> if mask .&. x == 0 then Nothing else Just val)
+    [ (c'GPGME_SIGSUM_BAD_POLICY , BadPolicy)
+    , (c'GPGME_SIGSUM_CRL_MISSING, CrlMissing)
+    , (c'GPGME_SIGSUM_CRL_TOO_OLD, CrlTooOld)
+    , (c'GPGME_SIGSUM_GREEN      , Green)
+    , (c'GPGME_SIGSUM_KEY_EXPIRED, KeyExpired)
+    , (c'GPGME_SIGSUM_KEY_MISSING, KeyMissing)
+    , (c'GPGME_SIGSUM_KEY_REVOKED, KeyRevoked)
+    , (c'GPGME_SIGSUM_RED        , Red)
+    , (c'GPGME_SIGSUM_SIG_EXPIRED, SigExpired)
+    , (c'GPGME_SIGSUM_SYS_ERROR  , SysError)
+    , (c'GPGME_SIGSUM_VALID      , Valid)
+    ]
+
+type VerificationResult = [(GpgmeError, [SignatureSummary], Fpr)]
 
 -- | The fingerprint and an error code
 type InvalidKey = (String, Int)

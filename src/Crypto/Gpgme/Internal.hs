@@ -3,7 +3,7 @@ module Crypto.Gpgme.Internal where
 import Bindings.Gpgme
 import Control.Monad (unless)
 import qualified Data.ByteString as BS
-import Foreign (allocaBytes, castPtr, peek)
+import Foreign (allocaBytes, castPtr, nullPtr, peek)
 import Foreign.C.String (peekCString)
 import Foreign.C.Types (CUInt, CInt)
 import System.IO.Unsafe (unsafePerformIO)
@@ -33,6 +33,21 @@ collectResult dat' = unsafePerformIO $ do
                                   return (byte `BS.cons` rest)
                           else return BS.empty
         seekSet = 0
+
+collectSignatures :: C'gpgme_ctx_t -> VerificationResult
+collectSignatures ctx = unsafePerformIO $ do
+    verify_res <- c'gpgme_op_verify_result ctx
+    sigs <- peek $ p'_gpgme_op_verify_result'signatures verify_res
+    go sigs
+    where
+        go sig | sig == nullPtr = return []
+        go sig = do
+            status <- peek $ p'_gpgme_signature'status sig
+            summary <- peek $ p'_gpgme_signature'summary sig
+            fpr <- peek (p'_gpgme_signature'fpr sig) >>= BS.packCString
+            next <- peek $ p'_gpgme_signature'next sig
+            xs <- go next
+            return $ (GpgmeError status, toSignatureSummaries summary, fpr) : xs
 
 checkError :: String -> C'gpgme_error_t -> IO ()
 checkError fun gpgme_err =

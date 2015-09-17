@@ -58,6 +58,9 @@ module Crypto.Gpgme (
     , keySubKeys
 
     -- * Encryption
+    , Signature
+    , SignatureSummary(..)
+    , VerificationResult
     , encrypt
     , encryptSign
     , encrypt'
@@ -66,6 +69,10 @@ module Crypto.Gpgme (
     , decrypt'
     , decryptVerify
     , decryptVerify'
+    , verifyDetached
+    , verifyDetached'
+    , verifyPlain
+    , verifyPlain'
 
     -- * Error handling
     , GpgmeError
