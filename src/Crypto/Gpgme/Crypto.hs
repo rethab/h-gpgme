@@ -185,8 +185,8 @@ verifyDetached ctx sig dat = do
     res <- verifyInternal go ctx sig dat
     return $ fmap fst res
     where
-        go ctx sig dat = do
-            errcode <- c'gpgme_op_verify ctx sig dat 0
+        go ctx' sig' dat' = do
+            errcode <- c'gpgme_op_verify ctx' sig' dat' 0
             return (errcode, ())
 
 -- | Convenience wrapper around 'withCtx' to
