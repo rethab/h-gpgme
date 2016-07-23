@@ -2,6 +2,7 @@
 
 ## 0.5.0.0
 - Add Stack support
+- Add key generation functionality
 
 ## 0.4.0.0
 - verifyDetached and verifyDetached' Verify a payload using a detached signature. (thanks mmhat)

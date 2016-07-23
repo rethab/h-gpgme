@@ -44,4 +44,4 @@ script:
   # Stack build
   - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
   # Stack test (Only non-interactive tests)
-  - travis_wait 60 ./runtests-noprompt-travis ${STACK_YAML}
+  - ./runtests-travis ${STACK_YAML}
