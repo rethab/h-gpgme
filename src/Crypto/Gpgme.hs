@@ -42,6 +42,9 @@ module Crypto.Gpgme (
     , isPassphraseCbSupported
     , PassphraseCb
     , setPassphraseCallback
+      -- ** Progress callbacks
+    , progressCb
+    , setProgressCallback
 
     -- * Keys
     , Key

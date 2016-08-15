@@ -6,15 +6,23 @@ import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
 import Text.Email.Validate
-import System.FilePath ((</>))
-import System.Directory ( getTemporaryDirectory
-                        , createDirectoryIfMissing
-                        , removeDirectoryRecursive)
+import System.FilePath    ((</>))
+import System.Directory   ( getTemporaryDirectory
+                          , createDirectoryIfMissing
+                          , removeDirectoryRecursive
+                          )
+import System.IO          ( hPutStr
+                          , hPutStrLn
+                          , IOMode (..)
+                          , withFile
+                          , hGetContents
+                          )
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Default
 
 import            Crypto.Gpgme
+import            Crypto.Gpgme.Ctx
 import qualified  Crypto.Gpgme.Key.Gen as G
 
 tests :: [TestTree]
@@ -26,6 +34,7 @@ tests = [ testCase "all_gen_key_parameters" all_gen_key_parameters
         , testCase "expire_date_seconds" expire_date_seconds
         , testCase "creation_date_seconds" creation_date_seconds
         , testCase "gen_key_no_travis" gen_key
+        , testCase "progress_callback_no_travis" progress_callback
         ]
 
 -- For getting values from Either
@@ -177,3 +186,44 @@ creation_date_seconds =
       \Key-Type: default\n\
       \Creation-Date: seconds=123456\n\
       \</GnupgKeyParms>\n"
+
+progress_callback :: Assertion
+progress_callback = do
+  -- Create temporary directory
+  tmpDir <- getTemporaryDirectory >>= \x -> pure $ x </> "progress_callback"
+  createDirectoryIfMissing True tmpDir
+
+  -- Setup context
+  genRet <- withCtx tmpDir "C" OpenPGP $ \ctx -> do
+    -- Setup generation parameters
+    let params = (def :: G.GenKeyParams)
+                { G.keyType   = Just Rsa
+                , G.keyLength = Just $ errorOnLeft $ G.bitSize 2048
+                , G.nameReal  = "Joe Tester"
+                , G.nameEmail = Just $ errorOnLeft $ validate "joe@foo.bar"
+                , G.passphrase  = "abc"
+                }
+
+        -- Setup callback which writes to temporary file.
+        testProgressCb what char cur total =
+          withFile (tmpDir </> "testProgress.log") AppendMode (\h -> do
+            hPutStr h ("what: " ++ what)
+            hPutStr h (" char: " ++ show char)
+            hPutStr h (" cur: " ++ show cur)
+            hPutStr h (" total: " ++ show total)
+            hPutStrLn h "")
+
+    setProgressCallback ctx (Just testProgressCb)
+
+    -- Run key generation
+    G.genKey ctx params
+
+  -- Make sure the file has some evidence of progress notifications
+  ret <- withFile (tmpDir </> "testProgress.log") ReadMode (\h -> do
+    contents <- hGetContents h
+    ((length $ lines contents) > 0) @? "No lines in progress file")
+
+  -- Cleanup test
+  removeDirectoryRecursive tmpDir
+  genRet @?= Nothing
+  return $ ret

@@ -141,3 +141,30 @@ setPassphraseCallback (Ctx {_ctx=ctxPtr}) callback = do
     c'gpgme_set_pinentry_mode ctx mode >>= checkError "setPassphraseCallback"
     cb <- maybe (return nullFunPtr) passphraseCb callback
     c'gpgme_set_passphrase_cb ctx cb nullPtr
+
+-- | A callback invoked when the engine uses a progress notification.
+-- See the PROGRESS section of docs/DETAILS in gnupg repository.
+type ProgressCb =
+       String     -- ^ WHAT type of progress
+    -> Char       -- ^ CHAR is the character displayed with no --status-fd enabled, with the linefeed replaced by an 'X'
+    -> Integer    -- ^ CUR is the current progress
+    -> Integer    -- ^ TOTAL is the total possible progress
+    -> IO ()
+
+-- | Construct a progress callback
+progressCb :: ProgressCb -> IO C'gpgme_progress_cb_t
+progressCb callback = do
+  let go _ what char cur total = do
+        what' <- peekCString what
+        let charChar = toEnum (fromEnum $ toInteger char)::Char
+        callback what' charChar (toInteger cur) (toInteger total)
+  mk'gpgme_progress_cb_t go
+
+-- | Set the callback invoked when a progress feedback is available.
+setProgressCallback :: Ctx        -- ^ context
+                    -> Maybe ProgressCb
+                    -> IO ()
+setProgressCallback (Ctx {_ctx=ctxPtr}) callback = do
+  ctx <- peek ctxPtr
+  cb <- maybe (return nullFunPtr) progressCb callback
+  c'gpgme_set_progress_cb ctx cb nullPtr
