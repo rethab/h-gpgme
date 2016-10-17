@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# with this, we will only be asked
-# for a passphrase once
+echo "Saving passphrases in gpg-agent"
 eval $(gpg-agent --daemon)
+echo 'Use `pkill -SIGHUP gpg-agent` to clear cached passphrases'
+echo "Bob's passphrase: \`bob123\`"
+echo "Alice's passphrase: \`alice123\`"
+echo "Use any password for symmetrical encryption test"
 
-cabal clean
-cabal configure --enable-tests
-cabal build
-cabal test
+stack test

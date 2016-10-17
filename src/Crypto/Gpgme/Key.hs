@@ -13,7 +13,6 @@ module Crypto.Gpgme.Key (
     ) where
 
 import Bindings.Gpgme
-import Control.Applicative
 import qualified Data.ByteString as BS
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
