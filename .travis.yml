@@ -1,5 +1,10 @@
 # Used as reference in building this Travis-CI configuration
 # https://github.com/simonmichael/hledger/blob/master/.travis.yml
+language: bash
+
+# Trusty required for Docker
+# https://github.com/travis-ci/travis-ci/issues/5448#issuecomment-171420138
+dist: trusty
 
 branches:
   only:
@@ -23,11 +28,9 @@ matrix:
     - env:
       - STACK_YAML: stack-lts-6.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
-      language: bash
     - env:
       - STACK_YAML: stack.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
-      language: bash
   allow_failures:
     - env: STACK_YAML=stack.yaml
 
