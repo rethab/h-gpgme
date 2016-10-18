@@ -1,6 +1,6 @@
 # Used as reference in building this Travis-CI configuration
 # https://github.com/simonmichael/hledger/blob/master/.travis.yml
-language: haskell
+language: bash
 
 branches:
   only:
