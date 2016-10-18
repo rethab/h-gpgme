@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module TestUtil where
 
 import qualified Data.ByteString as BS
@@ -11,6 +12,8 @@ alice_pub_fpr = "EAACEB8A"
 bob_pub_fpr :: BS.ByteString
 bob_pub_fpr = "6C4FB8F2"
 
+-- Orphan instance here! Because this is only a test, orphans are probably OK.
+-- http://stackoverflow.com/a/3081367/350221
 instance Arbitrary BS.ByteString where
     arbitrary = fmap BS.pack arbitrary
 
