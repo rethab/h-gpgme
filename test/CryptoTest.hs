@@ -17,19 +17,19 @@ import TestUtil
 
 tests :: TestTree
 tests = testGroup "crypto"
-    [ testProperty "bob_encrypt_for_alice_decrypt"
+    [ testProperty "bob_encrypt_for_alice_decrypt_prompt"
                    $ bob_encrypt_for_alice_decrypt False
-    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify"
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_prompt"
                    $ bob_encrypt_sign_for_alice_decrypt_verify False
 
-    , testProperty "bob_encrypt_for_alice_decrypt_short"
+    , testProperty "bob_encrypt_for_alice_decrypt_short_prompt"
                    bob_encrypt_for_alice_decrypt_short
-    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short"
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short_prompt"
                    bob_encrypt_sign_for_alice_decrypt_verify_short
 
     , testCase "decrypt_garbage" decrypt_garbage
     , testCase "encrypt_wrong_key" encrypt_wrong_key
-    , testCase "bob_encrypt_symmetrically" bob_encrypt_symmetrically
+    , testCase "bob_encrypt_symmetrically_prompt" bob_encrypt_symmetrically
     ]
 
 cbTests :: IO TestTree
@@ -40,7 +40,7 @@ cbTests = do
        then return $ testGroup "passphrase-cb"
                 [ testProperty "bob_encrypt_for_alice_decrypt"
                                $ bob_encrypt_for_alice_decrypt True
-                , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb"
+                , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb_prompt"
                                $ bob_encrypt_sign_for_alice_decrypt_verify True
                 ]
        else return $ testGroup "passphrase-cb" []
