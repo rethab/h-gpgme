@@ -11,12 +11,20 @@ sudo: required
 services:
   - docker
 
-cache:
-  directories:
-    - /var/lib/docker
+# Cannot cache Docker because of:
+# tar: /var/lib/docker: Cannot open: Permission denied
+#cache:
+#  directories:
+#    - /var/lib/docker
 
 env:
-  DOCKER_COMPOSE_VERSION: 1.8.1
+  - DOCKER_COMPOSE_VERSION: 1.8.1
+  - STACK_YAML: stack-lts-6.yml
+  - STACK_YAML: stack.yml
+
+matrix:
+  allow_failures:
+    - env: STACK_YAML=stack.yml
 
 before_install:
   # Get Docker Compose
@@ -29,16 +37,17 @@ install:
   # Docker build
   - docker-compose build --pull
   # Stack setup
-  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml setup
+  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} setup
   # Stack clean (Remove any old builds)
-  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml clean
+  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} clean
 
 script:
   # Stack build
-  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml build --haddock --no-haddock-deps
+  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
   # Stack test (Only non-interactive tests)
-  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml test --test-arguments '-p !**/*_prompt'
+  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} test --test-arguments '-p !**/*_prompt'
 
-after_script:
-  # Remove old images
-  - docker rmi $(docker images --filter 'dangling=true' -q --no-trunc)
+# No point in cleaning up Docker without a working cache
+#after_script:
+#  # Remove old images
+#  - docker rmi $(docker images --filter 'dangling=true' -q --no-trunc)
