@@ -1,0 +1,14 @@
+# For running tests on Travis-CI
+version: '2'
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - dot-stack-work:/root/build/.stack-work
+      - dot-stack:/root/.stack
+
+volumes:
+  dot-stack-work:
+  dot-stack:

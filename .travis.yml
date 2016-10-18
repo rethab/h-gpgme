@@ -6,29 +6,39 @@ branches:
   only:
     - master
 
-sudo: false
+sudo: required
+
+services:
+  - docker
 
 cache:
   directories:
-    - $HOME/.stack/
+    - /var/lib/docker
 
-addons:
-  apt:
-    packages:
-      - libgpgme11-dev
+env:
+  DOCKER_COMPOSE_VERSION: 1.8.1
 
 before_install:
-  - mkdir -p ~/.local/bin
-  - export PATH=~/.local/bin:$PATH
-  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - chmod a+x ~/.local/bin/stack
+  # Get Docker Compose
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
 
 install:
-  - stack +RTS -N2 -RTS setup
-  - stack +RTS -N2 -RTS build --only-snapshot
+  # Docker build
+  - docker-compose build --pull
+  # Stack setup
+  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml setup
+  # Stack clean (Remove any old builds)
+  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml clean
 
 script:
-  - git --version
-  - stack --version
-  - stack +RTS -N2 -RTS build --haddock --no-haddock-deps
-  - bash -c "./runtests-noprompt"
+  # Stack build
+  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml build --haddock --no-haddock-deps
+  # Stack test (Only non-interactive tests)
+  - docker-compose run --rm tests stack --stack-yaml stack-lts-6.yml test --test-arguments '-p !**/*_prompt'
+
+after_script:
+  # Remove old images
+  - docker rmi $(docker images --filter 'dangling=true' -q --no-trunc)
