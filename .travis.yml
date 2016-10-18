@@ -1,6 +1,5 @@
 # Used as reference in building this Travis-CI configuration
 # https://github.com/simonmichael/hledger/blob/master/.travis.yml
-language: bash
 
 branches:
   only:
@@ -24,9 +23,11 @@ matrix:
     - env:
       - STACK_YAML: stack-lts-6.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
+      language: bash
     - env:
       - STACK_YAML: stack.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
+      language: bash
   allow_failures:
     - env: STACK_YAML=stack.yaml
 
