@@ -15,7 +15,7 @@ cache:
 addons:
   apt:
     packages:
-      - gnupg
+      - libgpgme11-dev
 
 before_install:
   - mkdir -p ~/.local/bin
