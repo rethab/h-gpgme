@@ -12,6 +12,11 @@ cache:
   directories:
     - $HOME/.stack/
 
+addons:
+  apt:
+    packages:
+      - gnupg
+
 before_install:
   - mkdir -p ~/.local/bin
   - export PATH=~/.local/bin:$PATH
