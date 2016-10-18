@@ -15,13 +15,6 @@ sudo: required
 services:
   - docker
 
-# Cannot cache Docker because of:
-# tar: /var/lib/docker: Cannot open: Permission denied
-#cache:
-#  directories:
-#    - /var/lib/docker
-
-
 # Test all 
 matrix:
   include:
@@ -31,8 +24,6 @@ matrix:
     - env:
       - STACK_YAML: stack.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
-  allow_failures:
-    - env: STACK_YAML=stack.yaml
 
 before_install:
   # Get Docker Compose
@@ -54,8 +45,3 @@ script:
   - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
   # Stack test (Only non-interactive tests)
   - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} test --test-arguments '-p !**/*_prompt'
-
-# No point in cleaning up Docker without a working cache
-#after_script:
-#  # Remove old images
-#  - docker rmi $(docker images --filter 'dangling=true' -q --no-trunc)
