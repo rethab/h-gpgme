@@ -8,6 +8,7 @@ h-gpgme: High Level Haskell Bindings for GnuPG Made Easy
 ```haskell
 let alice_pub_fpr = "EAACEB8A"
 
+-- encrypt
 Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
         aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
         fromRight $ encrypt bCtx [aPubKey] NoFlag plain
