@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/dmp1ce/h-gpgme.svg?branch=master)](https://travis-ci.org/dmp1ce/h-gpgme)
+[![Build Status](https://travis-ci.org/rethab/h-gpgme.svg?branch=master)](https://travis-ci.org/rethab/h-gpgme)
 
 h-gpgme: High Level Haskell Bindings for GnuPG Made Easy
 ========================================================
