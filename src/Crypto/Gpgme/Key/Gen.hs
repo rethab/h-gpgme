@@ -141,11 +141,10 @@ genKey :: Ctx           -- ^ context to operate in
        -> GenKeyParams  -- ^ parameters to use for generating key
        -> IO (Maybe GpgmeError)
 genKey (Ctx {_ctx=ctxPtr}) params = do
-  ret <- F.peek ctxPtr >>= \ctx -> do
-    res <- BS.useAsCString (toParamsString params) $ \p -> do
-      let nullGpgmeData = 0  -- Using 0 as NULL for gpgme_data_t
-      c'gpgme_op_genkey ctx p nullGpgmeData nullGpgmeData
-    return res
+  ctx <- F.peek ctxPtr
+  ret <- BS.useAsCString (toParamsString params) $ \p -> do
+    let nullGpgmeData = 0  -- Using 0 as NULL for gpgme_data_t
+    c'gpgme_op_genkey ctx p nullGpgmeData nullGpgmeData
   if ret == noError
     then return Nothing
     else return . Just $ GpgmeError ret

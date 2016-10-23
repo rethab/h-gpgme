@@ -22,7 +22,6 @@ import Data.Time.Clock
 import Data.Default
 
 import            Crypto.Gpgme
-import            Crypto.Gpgme.Ctx
 import qualified  Crypto.Gpgme.Key.Gen as G
 
 tests :: [TestTree]
