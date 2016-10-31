@@ -7,10 +7,7 @@ import Test.HUnit
 
 import Text.Email.Validate
 import System.FilePath    ((</>))
-import System.Directory   ( getTemporaryDirectory
-                          , createDirectoryIfMissing
-                          , removeDirectoryRecursive
-                          )
+import System.Directory   ( removeDirectoryRecursive )
 import System.IO          ( hPutStr
                           , hPutStrLn
                           , IOMode (..)
@@ -23,6 +20,7 @@ import Data.Default
 
 import            Crypto.Gpgme
 import qualified  Crypto.Gpgme.Key.Gen as G
+import TestUtil
 
 tests :: [TestTree]
 tests = [ testCase "all_gen_key_parameters" all_gen_key_parameters
@@ -89,9 +87,7 @@ all_gen_key_parameters =
 
 gen_key :: Assertion
 gen_key = do
-  -- Create temporary directory
-  tmpDir <- getTemporaryDirectory >>= \x -> pure $ x </> "gen_key"
-  createDirectoryIfMissing True tmpDir
+  tmpDir <- createTemporaryTestDir "gen_key"
 
   ret <- withCtx tmpDir "C" OpenPGP $ \ctx -> do
     let params = (def :: G.GenKeyParams)
@@ -188,9 +184,7 @@ creation_date_seconds =
 
 progress_callback :: Assertion
 progress_callback = do
-  -- Create temporary directory
-  tmpDir <- getTemporaryDirectory >>= \x -> pure $ x </> "progress_callback"
-  createDirectoryIfMissing True tmpDir
+  tmpDir <- createTemporaryTestDir "progress_callback"
 
   -- Setup context
   genRet <- withCtx tmpDir "C" OpenPGP $ \ctx -> do

@@ -5,6 +5,13 @@ module TestUtil where
 import qualified Data.ByteString as BS
 import Data.Maybe (fromJust)
 import Test.QuickCheck
+import System.FilePath    ((</>))
+import System.Directory   ( getTemporaryDirectory
+                          , createDirectoryIfMissing
+                          , removeDirectoryRecursive
+                          , doesDirectoryExist
+                          )
+
 
 alice_pub_fpr :: BS.ByteString
 alice_pub_fpr = "EAACEB8A"
@@ -33,3 +40,15 @@ fromLeft _        = error "is not left"
 isLeft :: Either a b -> Bool
 isLeft (Right _) = False
 isLeft (Left _)  = True
+
+createTemporaryTestDir :: String -> IO FilePath
+createTemporaryTestDir s = do
+  tmpDir <- getTemporaryDirectory >>= \x -> pure $ x </> s
+  -- Cleanup tests that failed the last time
+  tmp_check <- doesDirectoryExist tmpDir
+  if tmp_check
+    then removeDirectoryRecursive tmpDir
+    else return ()
+  -- Create temporary directory
+  createDirectoryIfMissing True tmpDir
+  return tmpDir
