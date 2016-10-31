@@ -6,6 +6,13 @@ import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
+import System.FilePath    ((</>))
+import System.Directory   ( removeDirectoryRecursive
+                          , createDirectory
+                          , listDirectory
+                          , copyFile
+                          )
+
 import Crypto.Gpgme
 import TestUtil
 
@@ -17,6 +24,7 @@ tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "get_inexistent_from_alice" get_inexistent_pub_from_alice
         , testCase "check_alice_pub_user_ids" check_alice_pub_user_ids
         , testCase "check_alice_pub_subkeys" check_alice_pub_subkeys
+        , testCase "remove_alice_key_prompt" remove_alice_key
         ]
 
 get_alice_pub_from_alice :: Assertion
@@ -77,3 +85,30 @@ check_alice_pub_subkeys = do
            subkeyAlgorithm sub @?= Rsa
            subkeyLength sub @?= 2048
            subkeyKeyId sub @?= "6B9809775CF91391"
+
+remove_alice_key :: Assertion
+remove_alice_key = do
+  tmpDir <- createTemporaryTestDir "remove_alice_key"
+
+  -- Copy alice's key into temporary directory so we can safely remove it
+  let alice_tmpDir = tmpDir </> "alice"
+  createDirectory $ alice_tmpDir
+  alice_files <- listDirectory "test/alice"
+  mapM_ (\f -> copyFile ("test/alice" </> f) (tmpDir </> "alice" </> f))
+    $ filter (\f -> f /= "S.gpg-agent"
+                 && f /= "private-keys-v1.d"
+                 && f /= ".gpg-v21-migrated"
+                 && f /= "random_seed"
+             ) alice_files
+
+  withCtx (tmpDir </> "alice") "C" OpenPGP $ \ctx ->
+    do key <- getKey ctx alice_pub_fpr WithSecret
+       start_num <- listKeys ctx WithSecret >>= \l -> return $ length l
+       start_num @?= 1
+       ret <- removeKey ctx (fromJust key) WithSecret
+       end_num <- listKeys ctx WithSecret >>= \l -> return $ length l
+       end_num @?= 0
+       ret @?= Nothing
+
+  -- Cleanup test
+  removeDirectoryRecursive tmpDir

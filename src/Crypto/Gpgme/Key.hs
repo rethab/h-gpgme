@@ -1,6 +1,7 @@
 module Crypto.Gpgme.Key (
       getKey
     , listKeys
+    , removeKey
       -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)
@@ -59,6 +60,25 @@ getKey (Ctx {_ctx=ctxPtr}) fpr secret = do
     if ret == noError
         then return . Just $ key
         else return Nothing
+
+-- | Removes the 'Key' from @context@
+removeKey :: Ctx                    -- ^ context to operate in
+          -> Key                    -- ^ key to delete
+          -> IncludeSecret          -- ^ include secret keys for deleting
+          -> IO (Maybe GpgmeError)
+removeKey (Ctx {_ctx=ctxPtr}) key secret = do
+  ctx <- peek ctxPtr
+  ret <- withKeyPtr key (\keyPtr -> do
+    k <- peek keyPtr
+    c'gpgme_op_delete ctx k s)
+  if ret == 0
+    then return Nothing
+    else return $ Just $ GpgmeError ret
+  where
+    s = secretToCInt secret
+    secretToCInt :: IncludeSecret -> CInt
+    secretToCInt WithSecret = 1
+    secretToCInt NoSecret   = 0
 
 -- | A key signature
 data KeySignature = KeySig { keysigAlgorithm :: PubKeyAlgo

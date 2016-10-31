@@ -19,9 +19,6 @@ services:
 matrix:
   include:
     - env:
-      - STACK_YAML: stack-lts-6.yaml
-      - DOCKER_COMPOSE_VERSION: 1.8.1
-    - env:
       - STACK_YAML: stack.yaml
       - DOCKER_COMPOSE_VERSION: 1.8.1
 
