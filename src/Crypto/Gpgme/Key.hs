@@ -8,8 +8,10 @@ module Crypto.Gpgme.Key (
     , UserId (..)
     , KeyUserId (..)
     , keyUserIds
+    , keyUserIds'
     , SubKey (..)
     , keySubKeys
+    , keySubKeys'
     ) where
 
 import Bindings.Gpgme
@@ -111,6 +113,7 @@ peekList nextFunc = go []
       | otherwise     = do v <- peek p
                            go (v : accum) (nextFunc v)
 
+-- | Extract 'KeyUserId's from 'Key'.
 keyUserIds' :: Key -> IO [KeyUserId]
 keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
     key' <- peek keyPtr >>= peek
@@ -129,6 +132,8 @@ keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
                    <*> peekCString (c'_gpgme_user_id'email uid)
                    <*> peekCString (c'_gpgme_user_id'comment uid)
 
+-- | Extract 'KeyUserId's from 'Key'. Uses 'unsafePerformIO' to bypass @IO@ monad!
+-- Use 'keyUserIds' instead if possible.
 keyUserIds :: Key -> [KeyUserId]
 keyUserIds = unsafePerformIO . keyUserIds'
 
@@ -141,6 +146,7 @@ data SubKey = SubKey { subkeyAlgorithm    :: PubKeyAlgo
                      , subkeyCardNumber   :: Maybe String
                      }
 
+-- | Extract 'SubKey's from 'Key'.
 keySubKeys' :: Key -> IO [SubKey]
 keySubKeys' key = withForeignPtr (unKey key) $ \keyPtr -> do
     key' <- peek keyPtr >>= peek
@@ -161,5 +167,7 @@ orNull f ptr
   | ptr == nullPtr = return Nothing
   | otherwise      = Just <$> f ptr
 
+-- | Extract 'SubKey's from 'Key'. Uses 'unsafePerformIO' to bypass @IO@ monad!
+-- Use 'keySubKeys' instead if possible.
 keySubKeys :: Key -> [SubKey]
 keySubKeys = unsafePerformIO . keySubKeys'

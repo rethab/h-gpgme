@@ -57,8 +57,10 @@ module Crypto.Gpgme (
     , UserId (..)
     , KeyUserId (..)
     , keyUserIds
+    , keyUserIds'
     , SubKey (..)
     , keySubKeys
+    , keySubKeys'
 
     -- * Encryption
     , Signature
