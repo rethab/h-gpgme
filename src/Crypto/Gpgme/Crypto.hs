@@ -10,6 +10,7 @@ module Crypto.Gpgme.Crypto (
     , decryptVerify'
     , verifyDetached
     , verifyDetached'
+    , clearSign
     , verifyPlain
     , verifyPlain'
 
@@ -179,6 +180,65 @@ decryptIntern dec_op (Ctx {_ctx=ctxPtr}) cipher = do
 
     return res
 
+-- | Sign in plain text for a list of signers
+clearSign :: Ctx   -- ^ Context to sign
+          -> [Key] -- ^ Keys to used for signing. An empty list will use context's default key.
+          -> Plain -- ^ Plain text to sign
+          -> IO (Either [InvalidKey] Plain)
+clearSign = signIntern c'gpgme_op_sign
+
+signIntern :: (    C'gpgme_ctx_t
+                -> C'gpgme_data_t
+                -> C'gpgme_data_t
+                -> C'gpgme_sig_mode_t
+                -> IO C'gpgme_error_t
+              ) -- ^ c'gpgme_op_sign type signature
+              -> Ctx
+              -> [Key]
+              -> Plain
+              -> IO (Either [InvalidKey] Encrypted)
+signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs plain = do
+    -- init buffer with plaintext
+    plainBufPtr <- malloc
+    BS.useAsCString plain $ \bs -> do
+        let copyData = 1 -- gpgme shall copy data, as bytestring will free it
+        let plainlen = fromIntegral (BS.length plain)
+        ret <- c'gpgme_data_new_from_mem plainBufPtr bs plainlen copyData
+        checkError "data_new_from_mem" ret
+    plainBuf <- peek plainBufPtr
+
+    -- init buffer for result
+    resultBufPtr <- newDataBuffer
+    resultBuf <- peek resultBufPtr
+
+    ctx <- peek ctxPtr
+
+    -- add signing keys
+    _ <- mapM ( \kForPtr -> withForeignPtr (unKey kForPtr)
+           (\kPtr -> do
+             k <- peek kPtr
+             c'gpgme_signers_add ctx k
+           )
+         ) signPtrs
+
+    -- sign
+    checkError "op_sign" =<< sign_op ctx plainBuf resultBuf c'GPGME_SIG_MODE_CLEAR
+    free plainBufPtr
+
+    -- check whether all keys could be used for signingi
+    signResPtr <- c'gpgme_op_sign_result ctx
+    signRes <- peek signResPtr
+    let recPtr = c'_gpgme_op_sign_result'invalid_signers signRes
+
+    let res = if recPtr /= nullPtr
+                then Left (collectFprs recPtr)
+                else Right (collectResult resultBuf)
+
+    free resultBufPtr
+
+    return res
+
+
 -- | Verify a payload with a detached signature
 verifyDetached :: Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError VerificationResult)
 verifyDetached ctx sig dat = do
@@ -222,7 +282,15 @@ verifyPlain' gpgDir sig dat =
     withCtx gpgDir locale OpenPGP $ \ctx ->
         verifyPlain ctx sig dat
 
-verifyInternal :: (C'gpgme_ctx_t -> C'gpgme_data_t -> C'gpgme_data_t -> IO (C'gpgme_error_t, a))-> Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, a))
+verifyInternal :: (    C'gpgme_ctx_t
+                    -> C'gpgme_data_t
+                    -> C'gpgme_data_t
+                    -> IO (C'gpgme_error_t, a)
+                  )
+                  -> Ctx
+                  -> Signature
+                  -> BS.ByteString
+                  -> IO (Either GpgmeError (VerificationResult, a))
 verifyInternal ver_op (Ctx {_ctx=ctxPtr}) sig dat = do
     -- init buffer with signature
     sigBufPtr <- malloc

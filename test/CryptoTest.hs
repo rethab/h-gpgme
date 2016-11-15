@@ -5,6 +5,7 @@ import Control.Monad (liftM, when)
 import Control.Monad.Trans.Maybe
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
+import Data.Maybe ( fromJust )
 import qualified Data.ByteString as BS
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
@@ -13,6 +14,7 @@ import Test.HUnit hiding (assert)
 import Test.QuickCheck.Monadic
 
 import Crypto.Gpgme
+import Crypto.Gpgme.Types ( GpgmeError (GpgmeError) )
 import TestUtil
 
 tests :: TestTree
@@ -30,6 +32,8 @@ tests = testGroup "crypto"
     , testCase "decrypt_garbage" decrypt_garbage
     , testCase "encrypt_wrong_key" encrypt_wrong_key
     , testCase "bob_encrypt_symmetrically_prompt_no_travis" bob_encrypt_symmetrically
+    , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_travis" bob_clear_sign_and_verify_specify_key_prompt
+    , testCase "bob_clear_sign_and_verify_default_key_prompt_no_travis" bob_clear_sign_and_verify_default_key_prompt
     ]
 
 cbTests :: IO TestTree
@@ -146,3 +150,27 @@ bob_encrypt_symmetrically = do
                         decrypt ctx cipher
 
         assertEqual "should decrypt to same" "plaintext" plain
+
+bob_clear_sign_and_verify_specify_key_prompt :: Assertion
+bob_clear_sign_and_verify_specify_key_prompt = do
+  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    key <- getKey ctx bob_pub_fpr NoSecret
+    resSign <- clearSign ctx [(fromJust key)] ""
+    resVerify <- verifyPlain ctx (fromRight resSign) ""
+    assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+
+bob_clear_sign_and_verify_default_key_prompt :: Assertion
+bob_clear_sign_and_verify_default_key_prompt = do
+  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    resSign <- clearSign ctx [] ""
+    resVerify <- verifyPlain ctx (fromRight resSign) ""
+    assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+
+-- Verify that the signature verification is successful
+isVerifyValid :: Either t ([(GpgmeError, [SignatureSummary], t1)], t2) -> Bool
+isVerifyValid (Right ((v:[]), _)) = (isVerifyValid' v)
+isVerifyValid (Right ((v:vs), t)) = (isVerifyValid' v) && isVerifyValid (Right (vs,t))
+isVerifyValid _  = False
+isVerifyValid' :: (GpgmeError, [SignatureSummary], t) -> Bool
+isVerifyValid' (GpgmeError 0, [Green,Valid], _) = True
+isVerifyValid' _ = False

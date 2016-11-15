@@ -77,6 +77,7 @@ module Crypto.Gpgme (
     , decryptVerify'
     , verifyDetached
     , verifyDetached'
+    , clearSign
     , verifyPlain
     , verifyPlain'
 
