@@ -2,6 +2,7 @@ module Crypto.Gpgme.Ctx where
 
 import Bindings.Gpgme
 import Control.Monad (when)
+import Control.Exception (SomeException(SomeException), catch, throwIO, toException)
 import Data.List (isPrefixOf)
 import Foreign
 import Foreign.C.String
@@ -66,9 +67,19 @@ withCtx :: String        -- ^ path to gpg homedirectory
         -> IO a
 withCtx homedir localeStr prot f = do
     ctx <- newCtx homedir localeStr prot
-    res <- f ctx
-    freeCtx ctx
-    return res
+    catch
+      ( do
+        res <- f ctx
+        freeCtx ctx
+        return res
+      )
+      -- If an exception occurs, first free the GPG context
+      -- and then throw our own exception to signal that
+      -- the exception was caught and accounted for.
+      ( \(SomeException e) -> do
+        freeCtx ctx
+        throwIO $ HgpgmeException (toException e)
+      )
 
 -- | Sets armor output on ctx
 setArmor :: Bool -> Ctx -> IO ()

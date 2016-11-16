@@ -7,6 +7,7 @@ import Foreign
 import qualified Foreign.Concurrent as FC
 import Foreign.C.String (peekCString)
 import System.IO.Unsafe (unsafePerformIO)
+import Control.Exception (SomeException, Exception)
 
 -- | the protocol to be used in the crypto engine
 data Protocol =
@@ -154,3 +155,7 @@ data PubKeyAlgo =
     | Dsa
     | Elg
     deriving (Show, Ord, Eq)
+
+-- | h-gpgme exception for wrapping exception which occur outside of the control of h-gpgme
+newtype HgpgmeException = HgpgmeException SomeException deriving (Show)
+instance Exception HgpgmeException

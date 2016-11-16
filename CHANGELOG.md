@@ -1,11 +1,18 @@
 # Changelog
 
 ## 0.5.0.0
+
+### New Features
+
 - Add Stack support
 - Add key generation functionality
 - Add remove key functionality
 - Add clear sign functionality
 - Add progress callback functionality
+
+### Bug fixes
+
+- Prevent potential memory leak in `withCtx`
 
 ## 0.4.0.0
 - verifyDetached and verifyDetached' Verify a payload using a detached signature. (thanks mmhat)

@@ -101,6 +101,8 @@ module Crypto.Gpgme (
 
     , DecryptError(..)
 
+    , HgpgmeException(..)
+
 ) where
 
 
