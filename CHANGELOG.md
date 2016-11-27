@@ -9,6 +9,7 @@
 - Add remove key functionality
 - Add clear sign functionality
 - Add progress callback functionality
+- Add file encryption and decryption
 
 ### Bug fixes
 

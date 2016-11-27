@@ -59,6 +59,8 @@ test-suite tests
                      , filepath
                      , email-validate
                      , data-default
+                     , temporary
+                     , exceptions
 
                      , HUnit                      >= 1.2  && <1.4
                      , tasty                      >= 0.10 && <1.0

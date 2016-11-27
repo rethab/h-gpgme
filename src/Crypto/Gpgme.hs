@@ -69,9 +69,13 @@ module Crypto.Gpgme (
     , VerificationResult
     , encrypt
     , encryptSign
+    , encryptFd
+    , encryptSignFd
     , encrypt'
     , encryptSign'
     , decrypt
+    , decryptFd
+    , decryptVerifyFd
     , decrypt'
     , decryptVerify
     , decryptVerify'

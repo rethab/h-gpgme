@@ -2,9 +2,13 @@ module Crypto.Gpgme.Crypto (
 
       encrypt
     , encryptSign
+    , encryptFd
+    , encryptSignFd
     , encrypt'
     , encryptSign'
     , decrypt
+    , decryptFd
+    , decryptVerifyFd
     , decrypt'
     , decryptVerify
     , decryptVerify'
@@ -16,6 +20,7 @@ module Crypto.Gpgme.Crypto (
 
 ) where
 
+import System.Posix.Types (Fd(Fd))
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import Control.Monad (liftM)
@@ -110,6 +115,59 @@ encryptIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag plain = do
 
     return res
 
+-- | Encrypt plaintext
+encryptFd :: Ctx -> [Key] -> Flag -> Fd -> Fd -> IO (Either [InvalidKey] ())
+encryptFd = encryptFdIntern c'gpgme_op_encrypt
+
+-- | Encrypt and sign plaintext
+encryptSignFd :: Ctx -> [Key] -> Flag -> Fd -> Fd -> IO (Either [InvalidKey] ())
+encryptSignFd = encryptFdIntern c'gpgme_op_encrypt_sign
+
+encryptFdIntern :: (C'gpgme_ctx_t
+                 -> GHC.Ptr.Ptr C'gpgme_key_t
+                 -> C'gpgme_encrypt_flags_t
+                 -> C'gpgme_data_t
+                 -> C'gpgme_data_t
+                 -> IO C'gpgme_error_t
+               )
+               -> Ctx
+               -> [Key]
+               -> Flag
+               -> Fd  -- ^ Plaintext data
+               -> Fd  -- ^ Ciphertext data
+               -> IO (Either [InvalidKey] ())
+encryptFdIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag (Fd plainCInt) (Fd cipherCInt) = do
+  -- Initialize plaintext buffer
+  plainBufPtr <- malloc
+  _ <- c'gpgme_data_new_from_fd plainBufPtr plainCInt
+  plainBuf <- peek plainBufPtr
+
+  -- Initialize ciphertext buffer
+  cipherBufPtr <- malloc
+  _ <- c'gpgme_data_new_from_fd cipherBufPtr cipherCInt
+  cipherBuf <- peek cipherBufPtr
+
+  ctx <- peek ctxPtr
+
+  -- encrypt
+  withKeyPtrArray recPtrs $ \recArray ->
+      checkError "op_encrypt" =<< enc_op ctx recArray (fromFlag flag)
+                                      plainBuf cipherBuf
+  free plainBufPtr
+
+  -- check whether all keys could be used for encryption
+  encResPtr <- c'gpgme_op_encrypt_result ctx
+  encRes <- peek encResPtr
+  let recPtr = c'_gpgme_op_encrypt_result'invalid_recipients encRes
+
+  let res = if recPtr /= nullPtr
+              then Left (collectFprs recPtr)
+              else Right (())
+
+  free cipherBufPtr
+
+  return res
+
 -- | Build a null-terminated array of pointers from a list of 'Key's
 withKeyPtrArray :: [Key] -> (Ptr C'gpgme_key_t -> IO a) -> IO a
 withKeyPtrArray [] f   = f nullPtr
@@ -142,7 +200,6 @@ decrypt = decryptIntern c'gpgme_op_decrypt
 -- | Decrypts and verifies a ciphertext
 decryptVerify :: Ctx -> Encrypted -> IO (Either DecryptError Plain)
 decryptVerify = decryptIntern c'gpgme_op_decrypt_verify
-
 
 decryptIntern :: (C'gpgme_ctx_t
                     -> C'gpgme_data_t
@@ -179,6 +236,48 @@ decryptIntern dec_op (Ctx {_ctx=ctxPtr}) cipher = do
     free resultBufPtr
 
     return res
+
+-- | Decrypt a ciphertext
+decryptFd :: Ctx -> Fd -> Fd -> IO (Either DecryptError ())
+decryptFd = decryptFdIntern c'gpgme_op_decrypt
+
+-- | Decrypt and verify ciphertext
+decryptVerifyFd :: Ctx -> Fd -> Fd -> IO (Either DecryptError ())
+decryptVerifyFd = decryptFdIntern c'gpgme_op_decrypt_verify
+
+decryptFdIntern :: (C'gpgme_ctx_t
+                    -> C'gpgme_data_t
+                    -> C'gpgme_data_t
+                    -> IO C'gpgme_error_t
+                  )
+                  -> Ctx
+                  -> Fd
+                  -> Fd
+                  -> IO (Either DecryptError ())
+decryptFdIntern dec_op (Ctx {_ctx=ctxPtr}) (Fd cipherCInt) (Fd plainCInt)= do
+  -- Initialize ciphertext buffer
+  cipherBufPtr <- malloc
+  _ <- c'gpgme_data_new_from_fd cipherBufPtr cipherCInt
+  cipherBuf <- peek cipherBufPtr
+
+  -- Initialize plaintext buffer
+  plainBufPtr <- malloc
+  _ <- c'gpgme_data_new_from_fd plainBufPtr plainCInt
+  plainBuf <- peek plainBufPtr
+
+  ctx <- peek ctxPtr
+
+  -- decrypt
+  errcode <- dec_op ctx cipherBuf plainBuf
+
+  let res = if errcode /= noError
+              then Left  (toDecryptError errcode)
+              else Right (())
+
+  free cipherBufPtr
+  free plainBufPtr
+
+  return res
 
 -- | Sign in plain text for a list of signers
 clearSign :: Ctx   -- ^ Context to sign

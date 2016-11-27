@@ -1,8 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CryptoTest (tests, cbTests) where
 
+import System.IO
+import System.IO.Temp
+import System.Posix.IO
 import Control.Monad (liftM, when)
 import Control.Monad.Trans.Maybe
+import Control.Monad.IO.Class
+import Control.Monad.Catch
+import Control.Concurrent
 import Data.List (isInfixOf)
 import Data.ByteString.Char8 ()
 import Data.Maybe ( fromJust )
@@ -34,6 +40,8 @@ tests = testGroup "crypto"
     , testCase "bob_encrypt_symmetrically_prompt_no_travis" bob_encrypt_symmetrically
     , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_travis" bob_clear_sign_and_verify_specify_key_prompt
     , testCase "bob_clear_sign_and_verify_default_key_prompt_no_travis" bob_clear_sign_and_verify_default_key_prompt
+    , testCase "encrypt_file_no_travis" encrypt_file
+    , testCase "encrypt_stream_no_travis" encrypt_stream
     ]
 
 cbTests :: IO TestTree
@@ -165,6 +173,103 @@ bob_clear_sign_and_verify_default_key_prompt = do
     resSign <- clearSign ctx [] ""
     resVerify <- verifyPlain ctx (fromRight resSign) ""
     assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+
+encrypt_file :: Assertion
+encrypt_file =
+  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
+    withTestTmpFiles $ \pp ph cp ch dp dh -> do
+      plainFd <- handleToFd ph
+      cipherFd <- handleToFd ch
+      decryptedFd <- handleToFd dh
+
+      key <- getKey ctx bob_pub_fpr NoSecret
+
+      -- Add plaintext content
+      writeFile pp "Plaintext contents. 1234go!"
+
+      -- Encrypt plaintext
+      resEnc <- encryptFd ctx [(fromJust key)] NoFlag plainFd cipherFd
+      if (resEnc == Right ())
+      then return ()
+      else assertFailure $ show resEnc
+
+      -- Recreate the cipher FD because it is closed (or something) from the encrypt command
+      cipherHandle' <- openFile cp ReadWriteMode
+      cipherFd' <- handleToFd cipherHandle'
+
+      -- Decrypt ciphertext
+      resDec <- decryptFd ctx cipherFd' decryptedFd
+      if (resDec == Right ())
+      then return ()
+      else assertFailure $ show resDec
+
+      -- Compare plaintext and decrypted text
+      plaintext <- readFile pp
+      decryptedtext <- readFile dp
+      plaintext @=? decryptedtext
+
+-- Encrypt from FD pipe into a FD file
+encrypt_stream :: Assertion
+encrypt_stream =
+  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
+    withTestTmpFiles $ \_ _ cp ch dp dh -> do
+
+      cipherFd <- handleToFd ch
+      decryptedFd <- handleToFd dh
+
+      -- Use bob's key
+      key <- getKey ctx bob_pub_fpr NoSecret
+
+      -- Create pipe
+      (pipeRead, pipeWrite) <- createPipe
+
+      -- Write to pipe
+      -- Add plaintext content
+      let testString = take (1000) $ repeat '.'
+      _ <- forkIO $ do
+        threadWaitWrite pipeWrite
+        _ <- fdWrite pipeWrite testString
+        closeFd pipeWrite
+
+      -- Start encrypting in thread
+      _ <- forkIO $ do
+        threadWaitRead pipeRead
+        _ <- encryptFd ctx [(fromJust key)] NoFlag pipeRead cipherFd
+        closeFd pipeRead
+
+      -- Wait a second for threads to finish
+      threadDelay (1000 * 1000 * 1)
+
+      -- Check result
+      -- Recreate the cipher FD because it is closed (or something) from the encrypt command
+      threadWaitRead cipherFd
+      ch' <- openFile cp ReadWriteMode
+      cipherFd' <- handleToFd ch'
+
+      -- Decrypt ciphertext
+      resDec <- decryptFd ctx cipherFd' decryptedFd
+      if (resDec == Right ())
+      then return ()
+      else assertFailure $ show resDec
+
+      -- Compare plaintext and decrypted text
+      decryptedtext <-readFile dp
+      testString @=? decryptedtext
+
+withTestTmpFiles :: (MonadIO m, MonadMask m)
+                 => ( FilePath -> Handle -- Plaintext
+                 ->   FilePath -> Handle -- Ciphertext
+                 ->   FilePath -> Handle -- Decrypted text
+                 ->   m a)
+                 -> m a
+withTestTmpFiles f =
+  withSystemTempFile "plain" $ \pp ph ->
+    withSystemTempFile "cipher" $ \cp ch ->
+      withSystemTempFile "decrypt" $ \dp dh ->
+        f pp ph cp ch dp dh
+
 
 -- Verify that the signature verification is successful
 isVerifyValid :: Either t ([(GpgmeError, [SignatureSummary], t1)], t2) -> Bool
