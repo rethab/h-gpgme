@@ -2,6 +2,7 @@
 module KeyTest (tests) where
 
 import Data.Maybe
+import Data.List
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
 import Test.HUnit
@@ -95,7 +96,7 @@ remove_alice_key = do
   createDirectory $ alice_tmpDir
   alice_files <- listDirectory "test/alice"
   mapM_ (\f -> copyFile ("test/alice" </> f) (tmpDir </> "alice" </> f))
-    $ filter (\f -> f /= "S.gpg-agent"
+    $ filter (\f -> (not $ isPrefixOf "S.gpg-agent" f)
                  && f /= "private-keys-v1.d"
                  && f /= ".gpg-v21-migrated"
                  && f /= "random_seed"
