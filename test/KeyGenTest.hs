@@ -106,8 +106,7 @@ gen_key = do
     G.genKey ctx params
   -- Cleanup temporary directory
   removeDirectoryRecursive tmpDir
-  ret @?= Nothing
-
+  assertBool ("Left was return value: " ++ show ret) (either (\_ -> False) (\_ -> True) ret)
 
 -- Other ExpireDate to string possibilities
 expire_date_days :: Assertion
@@ -218,5 +217,5 @@ progress_callback = do
 
   -- Cleanup test
   removeDirectoryRecursive tmpDir
-  genRet @?= Nothing
+  assertBool ("Left was return value: " ++ show ret) (either (\_ -> False) (\_ -> True) genRet)
   return $ ret
