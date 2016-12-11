@@ -139,15 +139,17 @@ toPositive n = if (n < 0) then Nothing else Just (Positive n)
 -- | Generate a GPG key
 genKey :: Ctx           -- ^ context to operate in
        -> GenKeyParams  -- ^ parameters to use for generating key
-       -> IO (Maybe GpgmeError)
+       -> IO (Either GpgmeError Fpr)
 genKey (Ctx {_ctx=ctxPtr}) params = do
   ctx <- F.peek ctxPtr
   ret <- BS.useAsCString (toParamsString params) $ \p -> do
     let nullGpgmeData = 0  -- Using 0 as NULL for gpgme_data_t
     c'gpgme_op_genkey ctx p nullGpgmeData nullGpgmeData
   if ret == noError
-    then return Nothing
-    else return . Just $ GpgmeError ret
+    then do
+      r <- c'gpgme_op_genkey_result ctx
+      return . Right $ BSC8.pack $ show r
+    else return . Left $ GpgmeError ret
 
 -- | Used by 'genKey' generate a XML string for GPG
 toParamsString :: GenKeyParams -> BS.ByteString
