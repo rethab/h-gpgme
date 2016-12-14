@@ -177,7 +177,7 @@ keySubKeys' key = withForeignPtr (unKey key) $ \keyPtr -> do
         SubKey <$> pure (toPubKeyAlgo $ c'_gpgme_subkey'pubkey_algo sub)
                <*> pure (fromIntegral $ c'_gpgme_subkey'length sub)
                <*> peekCString (c'_gpgme_subkey'keyid sub)
-               <*> BS.packCString (c'_gpgme_subkey'keyid sub)
+               <*> BS.packCString (c'_gpgme_subkey'fpr sub)
                <*> pure (readTime $ c'_gpgme_subkey'timestamp sub)
                <*> pure (readTime $ c'_gpgme_subkey'expires sub)
                <*> orNull peekCString (c'_gpgme_subkey'card_number sub)

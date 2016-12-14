@@ -14,6 +14,7 @@
 ### Bug fixes
 
 - Prevent potential memory leak in `withCtx`
+- Return full fingerprint for `keySubKeys`
 
 ## 0.4.0.0
 - verifyDetached and verifyDetached' Verify a payload using a detached signature. (thanks mmhat)

@@ -86,6 +86,7 @@ check_alice_pub_subkeys = do
            subkeyAlgorithm sub @?= Rsa
            subkeyLength sub @?= 2048
            subkeyKeyId sub @?= "6B9809775CF91391"
+           subkeyFpr sub @?= "3F10159E56ECB494ED42EFA36B9809775CF91391"
 
 remove_alice_key :: Assertion
 remove_alice_key = do
