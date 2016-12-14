@@ -47,6 +47,7 @@ import qualified  Data.ByteString.Char8  as BSC8
 import            Text.Email.Validate
 import            Data.Monoid ((<>))
 import            Foreign                as F
+import            Foreign.C.String       as FCS
 import            Bindings.Gpgme
 import            Data.Time.Clock
 import            Data.Time.Format
@@ -147,8 +148,12 @@ genKey (Ctx {_ctx=ctxPtr}) params = do
     c'gpgme_op_genkey ctx p nullGpgmeData nullGpgmeData
   if ret == noError
     then do
-      r <- c'gpgme_op_genkey_result ctx
-      return . Right $ BSC8.pack $ show r
+      rPtr <- c'gpgme_op_genkey_result ctx
+      r <- F.peek rPtr
+      let fprPtr = c'_gpgme_op_genkey_result'fpr r
+      fpr <- FCS.peekCString fprPtr
+
+      return . Right $ BSC8.pack fpr
     else return . Left $ GpgmeError ret
 
 -- | Used by 'genKey' generate a XML string for GPG

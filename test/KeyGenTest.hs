@@ -17,6 +17,8 @@ import System.IO          ( hPutStr
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Default
+import Data.List          ( isPrefixOf )
+import Data.ByteString.Char8    ( unpack )
 
 import            Crypto.Gpgme
 import qualified  Crypto.Gpgme.Key.Gen as G
@@ -106,7 +108,12 @@ gen_key = do
     G.genKey ctx params
   -- Cleanup temporary directory
   removeDirectoryRecursive tmpDir
-  assertBool ("Left was return value: " ++ show ret) (either (\_ -> False) (\_ -> True) ret)
+  either
+    (\(l) -> assertFailure $ "Left was return value " ++ (show l))
+    (\(r) -> assertBool ("Fingerprint ("
+                        ++ (unpack r)
+                        ++ ") starts with '0x' indicating it is actually a pointer.")
+      (not $ isPrefixOf "0x" (unpack r))) ret
 
 -- Other ExpireDate to string possibilities
 expire_date_days :: Assertion
