@@ -14,7 +14,7 @@ module Crypto.Gpgme.Crypto (
     , decryptVerify'
     , verifyDetached
     , verifyDetached'
-    , clearSign
+    , sign
     , verifyPlain
     , verifyPlain'
 
@@ -279,12 +279,13 @@ decryptFdIntern dec_op (Ctx {_ctx=ctxPtr}) (Fd cipherCInt) (Fd plainCInt)= do
 
   return res
 
--- | Sign in plain text for a list of signers
-clearSign :: Ctx   -- ^ Context to sign
-          -> [Key] -- ^ Keys to used for signing. An empty list will use context's default key.
-          -> Plain -- ^ Plain text to sign
-          -> IO (Either [InvalidKey] Plain)
-clearSign = signIntern c'gpgme_op_sign
+-- | Sign plaintext for a list of signers
+sign :: Ctx      -- ^ Context to sign
+     -> [Key]    -- ^ Keys to used for signing. An empty list will use context's default key.
+     -> SignMode -- ^ Signing mode
+     -> Plain    -- ^ Plain text to sign
+     -> IO (Either [InvalidKey] Plain)
+sign = signIntern c'gpgme_op_sign
 
 signIntern :: (    C'gpgme_ctx_t
                 -> C'gpgme_data_t
@@ -294,9 +295,10 @@ signIntern :: (    C'gpgme_ctx_t
               ) -- ^ c'gpgme_op_sign type signature
               -> Ctx
               -> [Key]
+              -> SignMode
               -> Plain
               -> IO (Either [InvalidKey] Encrypted)
-signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs plain = do
+signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs mode plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
     BS.useAsCString plain $ \bs -> do
@@ -321,7 +323,12 @@ signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs plain = do
          ) signPtrs
 
     -- sign
-    checkError "op_sign" =<< sign_op ctx plainBuf resultBuf c'GPGME_SIG_MODE_CLEAR
+    let modeCode = case mode of
+                     Normal -> c'GPGME_SIG_MODE_NORMAL
+                     Detach -> c'GPGME_SIG_MODE_DETACH
+                     Clear  -> c'GPGME_SIG_MODE_CLEAR
+
+    checkError "op_sign" =<< sign_op ctx plainBuf resultBuf modeCode
     free plainBufPtr
 
     -- check whether all keys could be used for signingi
@@ -339,7 +346,10 @@ signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs plain = do
 
 
 -- | Verify a payload with a detached signature
-verifyDetached :: Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError VerificationResult)
+verifyDetached :: Ctx           -- ^ GPG context
+               -> Signature     -- ^ Detached signature
+               -> BS.ByteString -- ^ Signed text
+               -> IO (Either GpgmeError VerificationResult)
 verifyDetached ctx sig dat = do
     res <- verifyInternal go ctx sig dat
     return $ fmap fst res
@@ -350,7 +360,10 @@ verifyDetached ctx sig dat = do
 
 -- | Convenience wrapper around 'withCtx' to
 --   verify a single detached signature with its homedirectory.
-verifyDetached' :: String -> Signature -> BS.ByteString -> IO (Either GpgmeError VerificationResult)
+verifyDetached' :: String        -- ^ GPG context home directory
+                -> Signature     -- ^ Detached signature
+                -> BS.ByteString -- ^ Signed text
+                -> IO (Either GpgmeError VerificationResult)
 verifyDetached' gpgDir sig dat =
     withCtx gpgDir locale OpenPGP $ \ctx ->
         verifyDetached ctx sig dat
@@ -414,9 +427,10 @@ verifyInternal ver_op (Ctx {_ctx=ctxPtr}) sig dat = do
     -- verify
     (errcode, res) <- ver_op ctx sigBuf datBuf
 
+    sigs <- collectSignatures' ctx
     let res' = if errcode /= noError
                 then Left  (GpgmeError errcode)
-                else Right (collectSignatures ctx, res)
+                else Right (sigs, res)
 
     free sigBufPtr
     free datBufPtr

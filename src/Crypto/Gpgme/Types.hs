@@ -26,6 +26,8 @@ data Ctx = Ctx {
     , _engineVersion   :: String            -- ^ engine version
 }
 
+data SignMode = Normal | Detach | Clear deriving Show
+
 -- | a fingerprint
 type Fpr = BS.ByteString
 

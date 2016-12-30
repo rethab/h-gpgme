@@ -34,8 +34,13 @@ collectResult dat' = unsafePerformIO $ do
                           else return BS.empty
         seekSet = 0
 
+-- ^ Unsafe IO version of `collectSignatures`. Try to use `collectSignatures'` instead.
 collectSignatures :: C'gpgme_ctx_t -> VerificationResult
-collectSignatures ctx = unsafePerformIO $ do
+collectSignatures ctx = unsafePerformIO $ collectSignatures' ctx
+
+-- ^ Return signatures a GPG verify action.
+collectSignatures' :: C'gpgme_ctx_t -> IO VerificationResult
+collectSignatures' ctx = do
     verify_res <- c'gpgme_op_verify_result ctx
     sigs <- peek $ p'_gpgme_op_verify_result'signatures verify_res
     go sigs

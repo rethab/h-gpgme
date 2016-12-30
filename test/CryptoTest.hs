@@ -20,7 +20,9 @@ import Test.HUnit hiding (assert)
 import Test.QuickCheck.Monadic
 
 import Crypto.Gpgme
-import Crypto.Gpgme.Types ( GpgmeError (GpgmeError) )
+import Crypto.Gpgme.Types ( GpgmeError (GpgmeError)
+                          , SignMode ( Clear, Detach )
+                          )
 import TestUtil
 
 tests :: TestTree
@@ -38,6 +40,7 @@ tests = testGroup "crypto"
     , testCase "decrypt_garbage" decrypt_garbage
     , testCase "encrypt_wrong_key" encrypt_wrong_key
     , testCase "bob_encrypt_symmetrically_prompt_no_travis" bob_encrypt_symmetrically
+    , testCase "bob_detach_sign_and_verify_specify_key_prompt_no_travis" bob_detach_sign_and_verify_specify_key_prompt
     , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_travis" bob_clear_sign_and_verify_specify_key_prompt
     , testCase "bob_clear_sign_and_verify_default_key_prompt_no_travis" bob_clear_sign_and_verify_default_key_prompt
     , testCase "encrypt_file_no_travis" encrypt_file
@@ -159,20 +162,29 @@ bob_encrypt_symmetrically = do
 
         assertEqual "should decrypt to same" "plaintext" plain
 
+bob_detach_sign_and_verify_specify_key_prompt :: Assertion
+bob_detach_sign_and_verify_specify_key_prompt = do
+  resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    key <- getKey ctx bob_pub_fpr NoSecret
+    let msgToSign = "Clear text message from bob!!"
+    resSign <-sign ctx [(fromJust key)] Detach msgToSign
+    verifyDetached ctx (fromRight resSign) msgToSign
+  assertBool "Could not verify bob's signature was correct" $ isVerifyDetachValid resVerify
+
 bob_clear_sign_and_verify_specify_key_prompt :: Assertion
 bob_clear_sign_and_verify_specify_key_prompt = do
-  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+  resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
     key <- getKey ctx bob_pub_fpr NoSecret
-    resSign <- clearSign ctx [(fromJust key)] ""
-    resVerify <- verifyPlain ctx (fromRight resSign) ""
-    assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+    resSign <- sign ctx [(fromJust key)] Clear "Clear text message from bob specifying signing key"
+    verifyPlain ctx (fromRight resSign) ""
+  assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
 bob_clear_sign_and_verify_default_key_prompt :: Assertion
 bob_clear_sign_and_verify_default_key_prompt = do
-  withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
-    resSign <- clearSign ctx [] ""
-    resVerify <- verifyPlain ctx (fromRight resSign) ""
-    assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+  resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    resSign <- sign ctx [] Clear "Clear text message from bob with default key"
+    verifyPlain ctx (fromRight resSign) ""
+  assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
 encrypt_file :: Assertion
 encrypt_file =
@@ -279,3 +291,12 @@ isVerifyValid _  = False
 isVerifyValid' :: (GpgmeError, [SignatureSummary], t) -> Bool
 isVerifyValid' (GpgmeError 0, [Green,Valid], _) = True
 isVerifyValid' _ = False
+
+-- Verify that the signature verification is successful for verifyDetach
+isVerifyDetachValid :: Either t [(GpgmeError, [SignatureSummary], t1)] -> Bool
+isVerifyDetachValid (Right ((v:[]))) = (isVerifyDetachValid' v)
+isVerifyDetachValid (Right ((v:vs))) = (isVerifyDetachValid' v) && isVerifyDetachValid (Right vs)
+isVerifyDetachValid _  = False
+isVerifyDetachValid' :: (GpgmeError, [SignatureSummary], t) -> Bool
+isVerifyDetachValid' (GpgmeError 0, [Green,Valid], _) = True
+isVerifyDetachValid' _ = False
