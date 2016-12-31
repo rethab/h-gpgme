@@ -21,7 +21,7 @@ import Test.QuickCheck.Monadic
 
 import Crypto.Gpgme
 import Crypto.Gpgme.Types ( GpgmeError (GpgmeError)
-                          , SignMode ( Clear, Detach )
+                          , SignMode ( Clear, Detach, Normal )
                           )
 import TestUtil
 
@@ -43,6 +43,8 @@ tests = testGroup "crypto"
     , testCase "bob_detach_sign_and_verify_specify_key_prompt_no_travis" bob_detach_sign_and_verify_specify_key_prompt
     , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_travis" bob_clear_sign_and_verify_specify_key_prompt
     , testCase "bob_clear_sign_and_verify_default_key_prompt_no_travis" bob_clear_sign_and_verify_default_key_prompt
+    , testCase "bob_normal_sign_and_verify_specify_key_prompt_no_travis" bob_normal_sign_and_verify_specify_key_prompt
+    , testCase "bob_normal_sign_and_verify_default_key_prompt_no_travis" bob_normal_sign_and_verify_default_key_prompt
     , testCase "encrypt_file_no_travis" encrypt_file
     , testCase "encrypt_stream_no_travis" encrypt_stream
     ]
@@ -184,6 +186,21 @@ bob_clear_sign_and_verify_default_key_prompt = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
     resSign <- sign ctx [] Clear "Clear text message from bob with default key"
     verifyPlain ctx (fromRight resSign) ""
+  assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+
+bob_normal_sign_and_verify_specify_key_prompt :: Assertion
+bob_normal_sign_and_verify_specify_key_prompt = do
+  resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    key <- getKey ctx bob_pub_fpr NoSecret
+    resSign <- sign ctx [(fromJust key)] Normal "Normal text message from bob specifying signing key"
+    verify ctx (fromRight resSign)
+  assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
+
+bob_normal_sign_and_verify_default_key_prompt :: Assertion
+bob_normal_sign_and_verify_default_key_prompt = do
+  resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    resSign <- sign ctx [] Normal "Normal text message from bob with default key"
+    verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
 encrypt_file :: Assertion

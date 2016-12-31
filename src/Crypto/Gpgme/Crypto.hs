@@ -12,17 +12,20 @@ module Crypto.Gpgme.Crypto (
     , decrypt'
     , decryptVerify
     , decryptVerify'
+    , verify
+    , verify'
     , verifyDetached
     , verifyDetached'
-    , sign
     , verifyPlain
     , verifyPlain'
+    , sign
 
 ) where
 
 import System.Posix.Types (Fd(Fd))
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import Control.Monad (liftM)
 import Control.Monad.Trans.Either
 import Foreign
@@ -368,16 +371,23 @@ verifyDetached' gpgDir sig dat =
     withCtx gpgDir locale OpenPGP $ \ctx ->
         verifyDetached ctx sig dat
 
--- | Verify a payload with a plain signature
+{-# DEPRECATED verifyPlain "Use verify" #-}
 verifyPlain :: Ctx -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
-verifyPlain = verifyInternal go
+verifyPlain c s _ = verify c s
+{-# DEPRECATED verifyPlain' "Use verify'" #-}
+verifyPlain' :: String -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
+verifyPlain' str sig _ = verify' str sig
+
+-- | Verify a payload with a plain signature
+verify :: Ctx -> Signature -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
+verify c s = verifyInternal go c s (C8.pack "")
     where
-        go ctx sig dat = do
+        go ctx sig _ = do
             -- init buffer for result
             resultBufPtr <- newDataBuffer
             resultBuf <- peek resultBufPtr
 
-            errcode <- c'gpgme_op_verify ctx sig dat resultBuf
+            errcode <- c'gpgme_op_verify ctx sig 0 resultBuf
 
             let res = if errcode /= noError
                         then mempty
@@ -389,10 +399,10 @@ verifyPlain = verifyInternal go
 
 -- | Convenience wrapper around 'withCtx' to
 --   verify a single plain signature with its homedirectory.
-verifyPlain' :: String -> Signature -> BS.ByteString -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
-verifyPlain' gpgDir sig dat =
+verify' :: String -> Signature -> IO (Either GpgmeError (VerificationResult, BS.ByteString))
+verify' gpgDir sig =
     withCtx gpgDir locale OpenPGP $ \ctx ->
-        verifyPlain ctx sig dat
+        verify ctx sig
 
 verifyInternal :: (    C'gpgme_ctx_t
                     -> C'gpgme_data_t

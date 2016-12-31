@@ -79,11 +79,13 @@ module Crypto.Gpgme (
     , decrypt'
     , decryptVerify
     , decryptVerify'
+    , verify
+    , verify'
     , verifyDetached
     , verifyDetached'
-    , sign
     , verifyPlain
     , verifyPlain'
+    , sign
 
     -- * Error handling
     , GpgmeError
