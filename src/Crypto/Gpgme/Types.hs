@@ -26,6 +26,7 @@ data Ctx = Ctx {
     , _engineVersion   :: String            -- ^ engine version
 }
 
+-- | Modes for signing with GPG
 data SignMode = Normal | Detach | Clear deriving Show
 
 -- | a fingerprint

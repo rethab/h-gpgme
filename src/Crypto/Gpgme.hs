@@ -93,6 +93,8 @@ module Crypto.Gpgme (
     , sourceString
 
     -- * Other Types
+    , SignMode(..)
+
     , Fpr
     , Encrypted
     , Plain
