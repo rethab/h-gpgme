@@ -3,7 +3,10 @@ FROM haskell
 MAINTAINER David Parrish <daveparrish@tutanota.com>
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libgpgme11-dev
+ && apt-get install -y --no-install-recommends \
+ xz-utils \
+ make \
+ libgpgme11-dev
 
 WORKDIR /root/build
 CMD stack setup \
