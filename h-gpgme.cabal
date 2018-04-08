@@ -12,6 +12,7 @@ Homepage:            https://github.com/rethab/h-gpgme
 Bug-reports:         https://github.com/rethab/h-gpgme/issues
 Tested-With:         GHC==7.10.3
                    , GHC==8.0.2
+                   , GHC==8.2.2
                    , GHC==8.4.1
 Category:            Cryptography
 Build-Type:          Simple
