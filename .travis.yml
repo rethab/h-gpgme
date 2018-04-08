@@ -18,19 +18,23 @@ services:
 # Test all 
 matrix:
   include:
-    - env:
-      - STACK_YAML: stack.yaml
+    - compiler: "ghc-7.10.3"
+      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.0,ghc-7.10.3], sources: [hvr-ghc]}}
+    - compiler: "ghc-8.0.2"
+      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.0,ghc-8.0.2], sources: [hvr-ghc]}}
+    - compiler: "ghc-8.4.1"
+      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.2,ghc-8.4.1], sources: [hvr-ghc]}}
 
 install:
   # Docker build
   - docker-compose build --pull
   # Stack setup
-  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} setup
+  - docker-compose run --rm tests stack --stack-yaml stack.yaml setup
   # Stack clean (Remove any old builds)
-  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} clean
+  - docker-compose run --rm tests stack --stack-yaml stack.yaml clean
 
 script:
   # Stack build
-  - docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
+  - docker-compose run --rm tests stack --stack-yaml stack.yaml build --haddock --no-haddock-deps
   # Stack test (Only non-interactive tests)
-  - ./runtests-travis ${STACK_YAML}
+  - ./runtests-travis stack.yaml
