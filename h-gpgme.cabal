@@ -32,7 +32,7 @@ library
   build-depends:       base           == 4.*
                      , bindings-gpgme >= 0.1.6 && <0.2
                      , bytestring     >= 0.9
-                     , either         >= 4.3 && <5
+                     , transformers   >= 0.4.1 && <0.6
                      , time           >= 1.4 && <2.0
                      , unix           >= 2.5
                      , email-validate
@@ -50,8 +50,7 @@ test-suite tests
   build-depends:       base           == 4.*
                      , bindings-gpgme >= 0.1.6 && <0.2
                      , bytestring     >= 0.9
-                     , either         >= 4.3 && <5
-                     , transformers   >= 0.3 && <0.6
+                     , transformers   >= 0.4.1 && <0.6
                      , time           >= 1.4 && <2.0
                      , unix           >= 2.5
                      , directory

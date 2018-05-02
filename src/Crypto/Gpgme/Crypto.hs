@@ -27,7 +27,7 @@ import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
 import Control.Monad (liftM)
-import Control.Monad.Trans.Either
+import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT, mapExceptT)
 import Foreign
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import GHC.Ptr
@@ -52,16 +52,22 @@ encrypt' = encryptIntern' encrypt
 encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptSign' = encryptIntern' encryptSign
 
-orElse :: Monad m => m (Maybe a) -> e -> EitherT e m a
-orElse action err = EitherT $ maybe (Left err) return `liftM` action
+orElse :: Monad m => m (Maybe a) -> e -> ExceptT e m a
+orElse action err = ExceptT $ maybe (Left err) return `liftM` action
+
+bimapExceptT :: Functor m => (x -> y) -> (a -> b) -> ExceptT x m a -> ExceptT y m b
+bimapExceptT f g = mapExceptT (fmap h)
+  where
+    h (Left  e) = Left  (f e)
+    h (Right a) = Right (g a)
 
 encryptIntern' :: (Ctx -> [Key] -> Flag -> Plain
                         -> IO (Either [InvalidKey] Encrypted)
                     ) -> String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptIntern' encrFun gpgDir recFpr plain =
-    withCtx gpgDir locale OpenPGP $ \ctx -> runEitherT $
+    withCtx gpgDir locale OpenPGP $ \ctx -> runExceptT $
         do pubKey <- getKey ctx recFpr NoSecret `orElse` ("no such key: " ++ show recFpr)
-           bimapEitherT show id $ EitherT $ encrFun ctx [pubKey] NoFlag plain
+           bimapExceptT show id $ ExceptT $ encrFun ctx [pubKey] NoFlag plain
 
 -- | encrypt for a list of recipients
 encrypt :: Ctx -> [Key] -> Flag -> Plain -> IO (Either [InvalidKey] Encrypted)
