@@ -7,7 +7,6 @@ License-file:        LICENSE
 Author:              Reto Habluetzel
 Maintainer:          rethab@rethab.ch
 Copyright:           (c) Reto Habluetzel 2016
-Author:              Reto Habluetzel 2016
 Homepage:            https://github.com/rethab/h-gpgme
 Bug-reports:         https://github.com/rethab/h-gpgme/issues
 Tested-With:         GHC==7.10.3
