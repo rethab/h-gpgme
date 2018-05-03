@@ -18,6 +18,9 @@
 - Return full fingerprint for `keySubKeys`
 - Fix crash bug in `verifyInternal` involving a call to `performUnsafeIO`
 
+### Maintenance
+- Replace dependency on `either` with `transfers` (thanks hvr)
+
 ## 0.4.0.0
 - verifyDetached and verifyDetached' Verify a payload using a detached signature. (thanks mmhat)
 - verifyPlain and verifyPlain' Verify a payload using a plain signature. (thanks mmhat)

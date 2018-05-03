@@ -20,4 +20,4 @@ dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
 
 See the test folder for more examples
 
-[Changelog](CHANGELOG.md)
+[Changelog](CHANGELOG.markdown)

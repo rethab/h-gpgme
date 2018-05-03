@@ -1,18 +1,24 @@
 Name:                h-gpgme
 Version:             0.5.0.0
-Description:         High Level Binding for GnuPG Made Easy (gpgme)
+Description:         High Level Binding for GnuPG Made Easy (gpgme): A Haskell API for the gpgme C library.
 Synopsis:            High Level Binding for GnuPG Made Easy (gpgme)
 License:             MIT
 License-file:        LICENSE
 Author:              Reto Habluetzel
-Maintainer:          rethab@rethab.ch
-Copyright:           (c) Reto Habluetzel 2016
+Maintainer:          rethab@protonmail.ch
+Copyright:           (c) Reto Habluetzel 2018
 Homepage:            https://github.com/rethab/h-gpgme
 Bug-reports:         https://github.com/rethab/h-gpgme/issues
 Tested-With:         GHC==7.10.3
 Category:            Cryptography
 Build-Type:          Simple
 Cabal-Version:       >=1.10
+Extra-Source-Files:
+  CHANGELOG.markdown
+  README.markdown
+  .gitignore
+  .travis.yml
+
 
 source-repository head
   type:     git
@@ -44,7 +50,6 @@ test-suite tests
   type:                exitcode-stdio-1.0
   default-language:    Haskell2010
   ghc-options:         -Wall
-                       -fhpc
   hs-source-dirs:      src, test
   main-is:             Main.hs
   build-depends:       base           == 4.*
