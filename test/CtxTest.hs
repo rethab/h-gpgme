@@ -4,6 +4,7 @@ module CtxTest (tests) where
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Class (lift)
 import qualified Data.ByteString as BS
+import Data.Maybe (fromMaybe)
 import Control.Exception (catch, fromException)
 import System.IO.Error (IOError, isUserError)
 
@@ -18,6 +19,8 @@ tests :: [TestTree]
 tests = [ testCase "run_action_with_ctx" run_action_with_ctx
         , testCase "set_armor" set_armor
         , testCase "unset_armor" unset_armor
+        , testCase "no_set_listing_mode" no_set_listing_mode
+        , testCase "set_listing_mode" set_listing_mode
         , testCase "exception_safe" exception_safe
         ]
 
@@ -44,6 +47,25 @@ unset_armor = do
               lift $ setArmor False bCtx
               lift $ encrypt bCtx [aPubKey] NoFlag "plaintext"
     (not $ armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Binary must not start with " ++ show armorPrefix)
+
+no_set_listing_mode :: Assertion
+no_set_listing_mode = do
+    sigs <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              kuids <- lift $ keyUserIds' aPubKey
+              return $ concatMap keyuserSignatures kuids
+    let sigs' = fromMaybe [] sigs
+    (length sigs' == 0) @? ("There should be no signatures, but there are some")
+
+set_listing_mode :: Assertion
+set_listing_mode = do
+    sigs <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
+              lift $ setKeyListingMode [KeyListingLocal, KeyListingSigs] bCtx
+              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              kuids <- lift $ keyUserIds' aPubKey
+              return $ concatMap keyuserSignatures kuids
+    let sigs' = fromMaybe [] sigs
+    (length sigs' > 0) @? ("There should be some signatures, but there are non")
 
 -- Ensure that if an exception occurs then the expected exception type is returned so that we know
 -- the context was freed

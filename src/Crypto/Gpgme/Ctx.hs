@@ -87,6 +87,13 @@ setArmor armored (Ctx {_ctx = ctxPtr}) = do
     ctx <- peek ctxPtr
     c'gpgme_set_armor ctx (if armored then 1 else 0)
 
+-- | Sets the key listing mode on ctx
+setKeyListingMode :: [KeyListingMode] -> Ctx -> IO ()
+setKeyListingMode modes (Ctx {_ctx = ctxPtr}) = do
+    let m = foldl (\memo -> (memo .|.) . fromKeyListingMode) 0 modes
+    ctx <- peek ctxPtr
+    checkError "set_keylist_mode" =<< c'gpgme_set_keylist_mode ctx m
+
 -- | Are passphrase callbacks supported?
 --
 -- This functionality is known to be broken in some gpg versions,

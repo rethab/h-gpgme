@@ -38,6 +38,7 @@ module Crypto.Gpgme (
     , freeCtx
     , withCtx
     , setArmor
+    , setKeyListingMode
       -- ** Passphrase callbacks
     , isPassphraseCbSupported
     , PassphraseCb
@@ -93,6 +94,7 @@ module Crypto.Gpgme (
     , sourceString
 
     -- * Other Types
+    , KeyListingMode(..)
     , SignMode(..)
 
     , Fpr

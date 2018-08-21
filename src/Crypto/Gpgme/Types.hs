@@ -26,6 +26,14 @@ data Ctx = Ctx {
     , _engineVersion   :: String            -- ^ engine version
 }
 
+-- | Modes for key listings
+data KeyListingMode
+    = KeyListingLocal
+    | KeyListingExtern
+    | KeyListingSigs
+    | KeyListingSigNotations
+    | KeyListingValidate
+
 -- | Modes for signing with GPG
 data SignMode = Normal | Detach | Clear deriving Show
 
