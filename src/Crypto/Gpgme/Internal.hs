@@ -68,6 +68,14 @@ checkError fun gpgme_err =
 noError :: Num a => a
 noError = 0
 
+fromKeyListingMode :: KeyListingMode -> C'gpgme_keylist_mode_t
+fromKeyListingMode KeyListingLocal        = c'GPGME_KEYLIST_MODE_LOCAL
+fromKeyListingMode KeyListingExtern       = c'GPGME_KEYLIST_MODE_EXTERN
+fromKeyListingMode KeyListingSigs         = c'GPGME_KEYLIST_MODE_SIGS
+fromKeyListingMode KeyListingSigNotations = c'GPGME_KEYLIST_MODE_SIG_NOTATIONS
+fromKeyListingMode KeyListingValidate     = c'GPGME_KEYLIST_MODE_VALIDATE
+
+
 fromProtocol :: (Num a) => Protocol -> a
 fromProtocol CMS     =  c'GPGME_PROTOCOL_CMS
 fromProtocol GPGCONF =  c'GPGME_PROTOCOL_GPGCONF
