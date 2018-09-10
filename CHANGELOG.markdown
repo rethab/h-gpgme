@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1.0
+
+### New Features
+
+- Add key listing modes (thanks mmhat)
+
 ## 0.5.0.0
 
 ### New Features
