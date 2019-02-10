@@ -22,6 +22,7 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "getBobPubFromAlice" getBobPubFromAlice
         , testCase "aliceListPubKeys" aliceListPubKeys
         , testCase "aliceListSecretKeys" aliceListSecretKeys
+        , testCase "aliceSearchPubKeys" aliceSearchPubKeys
         , testCase "getInexistentFromAlice" getInexistentPubFromAlice
         , testCase "checkAlicePubUserIds" checkAlicePubUserIds
         , testCase "checkAlicePubSubkeys" checkAlicePubSubkeys
@@ -56,6 +57,14 @@ aliceListSecretKeys = do
     withCtx "test/alice" "C" OpenPGP $ \ctx ->
         do keys <- listKeys ctx WithSecret
            length keys @?= 1
+
+aliceSearchPubKeys :: Assertion
+aliceSearchPubKeys = do
+    withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        do keys <- searchKeys ctx NoSecret "alice@email.com"
+           length keys @?= 1
+           let keyIds = [["6B9809775CF91391","3BA69AA2EAACEB8A"]]
+           map (map subkeyKeyId . keySubKeys) keys @?= keyIds
 
 getInexistentPubFromAlice :: Assertion
 getInexistentPubFromAlice = do

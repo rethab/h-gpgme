@@ -9,7 +9,7 @@
 -- Portability : untested
 --
 -- High Level Binding for GnuPG Made Easy (gpgme)
--- 
+--
 -- Most of these functions are a one-to-one translation
 -- from GnuPG API with some Haskell idiomatics to make
 -- the API more convenient.
@@ -19,15 +19,15 @@
 --
 -- == Example (from the tests):
 --
--- >let alice_pub_fpr = "EAACEB8A"                                      
--- >                                                                    
+-- >let alice_pub_fpr = "EAACEB8A"
+-- >
 -- >Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
--- >        aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret      
--- >        fromRight $ encrypt bCtx [aPubKey] NoFlag plain             
--- >                                                                    
--- >-- decrypt                                                          
--- >dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->                  
--- >        decrypt aCtx enc                                            
+-- >        aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+-- >        fromRight $ encrypt bCtx [aPubKey] NoFlag plain
+-- >
+-- >-- decrypt
+-- >dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx ->
+-- >        decrypt aCtx enc
 -- >
 --
 
@@ -55,6 +55,7 @@ module Crypto.Gpgme (
     , removeKey
     , RemoveKeyFlags(..)
 
+    , searchKeys
     -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)
