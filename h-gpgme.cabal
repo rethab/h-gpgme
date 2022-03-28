@@ -4,9 +4,9 @@ Description:         High Level Binding for GnuPG Made Easy (gpgme): A Haskell A
 Synopsis:            High Level Binding for GnuPG Made Easy (gpgme)
 License:             MIT
 License-file:        LICENSE
-Author:              Reto Habluetzel
-Maintainer:          rethab@protonmail.ch
-Copyright:           (c) Reto Habluetzel 2018
+Author:              Reto
+Maintainer:          rethab@protonmail.com
+Copyright:           (c) Reto 2022
 Homepage:            https://github.com/rethab/h-gpgme
 Bug-reports:         https://github.com/rethab/h-gpgme/issues
 Tested-With:         GHC==7.10.3
