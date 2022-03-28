@@ -65,10 +65,10 @@ test-suite tests
                      , temporary
                      , exceptions
 
-                     , HUnit                      >= 1.2  && <1.4
-                     , tasty                      >= 0.10 && <1.0
-                     , tasty-quickcheck           >= 0.8  && <1.0
-                     , tasty-hunit                >= 0.9  && <1.0
+                     , HUnit
+                     , tasty
+                     , tasty-quickcheck
+                     , tasty-hunit
                      , QuickCheck                 
   other-modules:       Crypto.Gpgme
                      , Crypto.Gpgme.Crypto
