@@ -3,7 +3,7 @@ module Crypto.Gpgme.Internal where
 import Bindings.Gpgme
 import Control.Monad (unless)
 import qualified Data.ByteString as BS
-import Foreign (allocaBytes, castPtr, nullPtr, peek)
+import Foreign (allocaBytes, castPtr, nullPtr, peek, Ptr, malloc)
 import Foreign.C.String (peekCString)
 import Foreign.C.Types (CUInt, CInt)
 import System.IO.Unsafe (unsafePerformIO)
@@ -109,3 +109,9 @@ toPubKeyAlgo n
   | n == c'GPGME_PK_DSA   = Dsa
   | n == c'GPGME_PK_ELG   = Elg
   | otherwise             = error "toPubKeyAlgo: Unrecognized public key algorithm"
+
+newDataBuffer :: IO (Ptr C'gpgme_data_t)
+newDataBuffer = do
+    resultBufPtr <- malloc
+    checkError "data_new" =<< c'gpgme_data_new resultBufPtr
+    return resultBufPtr
