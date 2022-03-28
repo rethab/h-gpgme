@@ -27,6 +27,7 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "checkAlicePubSubkeys" checkAlicePubSubkeys
         , testCase "removeAliceKey" removeAliceKey
         , testCase "read_from_file_works" read_from_file_works
+        , testCase "read_from_file_doesn't_exist" read_from_file_doesn't_exist
         ]
 
 getAlicePubFromAlice :: Assertion
@@ -121,3 +122,9 @@ read_from_file_works = do
     withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
       mRet <- importKeyFromFile ctx "test/real-person/real-person.key"
       mRet @?= Nothing
+
+read_from_file_doesn't_exist :: Assertion
+read_from_file_doesn't_exist = do
+    withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
+      mRet <- importKeyFromFile ctx "this-file-doesn't-exist"
+      isJust mRet @? "shouldn't be able to read this file"
