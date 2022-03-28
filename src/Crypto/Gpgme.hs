@@ -49,6 +49,7 @@ module Crypto.Gpgme (
 
     -- * Keys
     , Key
+    , importKeyFromFile
     , getKey
     , listKeys
     , removeKey
