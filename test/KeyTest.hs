@@ -25,7 +25,7 @@ tests = [ testCase "get_alice_pub_from_alice" get_alice_pub_from_alice
         , testCase "get_inexistent_from_alice" get_inexistent_pub_from_alice
         , testCase "check_alice_pub_user_ids" check_alice_pub_user_ids
         , testCase "check_alice_pub_subkeys" check_alice_pub_subkeys
-        , testCase "remove_alice_key_prompt" remove_alice_key
+        , testCase "remove_alice_key_prompt_no_ci" remove_alice_key
         ]
 
 get_alice_pub_from_alice :: Assertion
