@@ -7,9 +7,9 @@ else
   stack_yaml="$1"
 fi
 
-# Run setup again, just in case. This will already have run in actual travis build.
-# This duplicate 'setup' is for testing the tests outside of travis.
+# Run setup again, just in case. This will already have run in actual build.
+# This duplicate 'setup' is for testing the tests outside of CI.
 docker-compose run --rm tests stack --stack-yaml "$stack_yaml" setup
 
-# Wrapper to run tests without prompts on Travis CI
-docker-compose run --rm tests stack --stack-yaml "$stack_yaml" test --test-arguments '-p !**/*no_travis'
+# Wrapper to run tests without prompts on CI
+docker-compose run --rm tests stack --stack-yaml "$stack_yaml" test --test-arguments '-p !**/*no_ci'

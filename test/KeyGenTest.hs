@@ -32,8 +32,8 @@ tests = [ testCase "all_gen_key_parameters" all_gen_key_parameters
         , testCase "expire_date_years" expire_date_years
         , testCase "expire_date_seconds" expire_date_seconds
         , testCase "creation_date_seconds" creation_date_seconds
-        , testCase "gen_key_no_travis" gen_key
-        , testCase "progress_callback_no_travis" progress_callback
+        , testCase "gen_key_no_ci" gen_key
+        , testCase "progress_callback_no_ci" progress_callback
         ]
 
 -- For getting values from Either

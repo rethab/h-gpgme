@@ -27,26 +27,26 @@ import TestUtil
 
 tests :: TestTree
 tests = testGroup "crypto"
-    [ testProperty "bob_encrypt_for_alice_decrypt_prompt_no_travis"
+    [ testProperty "bob_encrypt_for_alice_decrypt_prompt_no_ci"
                    $ bob_encrypt_for_alice_decrypt False
-    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_prompt_no_travis"
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_prompt_no_ci"
                    $ bob_encrypt_sign_for_alice_decrypt_verify False
 
-    , testProperty "bob_encrypt_for_alice_decrypt_short_prompt_no_travis"
+    , testProperty "bob_encrypt_for_alice_decrypt_short_prompt_no_ci"
                    bob_encrypt_for_alice_decrypt_short
-    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short_prompt_no_travis"
+    , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_short_prompt_no_ci"
                    bob_encrypt_sign_for_alice_decrypt_verify_short
 
     , testCase "decrypt_garbage" decrypt_garbage
     , testCase "encrypt_wrong_key" encrypt_wrong_key
-    , testCase "bob_encrypt_symmetrically_prompt_no_travis" bob_encrypt_symmetrically
-    , testCase "bob_detach_sign_and_verify_specify_key_prompt_no_travis" bob_detach_sign_and_verify_specify_key_prompt
-    , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_travis" bob_clear_sign_and_verify_specify_key_prompt
-    , testCase "bob_clear_sign_and_verify_default_key_prompt_no_travis" bob_clear_sign_and_verify_default_key_prompt
-    , testCase "bob_normal_sign_and_verify_specify_key_prompt_no_travis" bob_normal_sign_and_verify_specify_key_prompt
-    , testCase "bob_normal_sign_and_verify_default_key_prompt_no_travis" bob_normal_sign_and_verify_default_key_prompt
-    , testCase "encrypt_file_no_travis" encrypt_file
-    , testCase "encrypt_stream_no_travis" encrypt_stream
+    , testCase "bob_encrypt_symmetrically_prompt_no_ci" bob_encrypt_symmetrically
+    , testCase "bob_detach_sign_and_verify_specify_key_prompt_no_ci" bob_detach_sign_and_verify_specify_key_prompt
+    , testCase "bob_clear_sign_and_verify_specify_key_prompt_no_ci" bob_clear_sign_and_verify_specify_key_prompt
+    , testCase "bob_clear_sign_and_verify_default_key_prompt_no_ci" bob_clear_sign_and_verify_default_key_prompt
+    , testCase "bob_normal_sign_and_verify_specify_key_prompt_no_ci" bob_normal_sign_and_verify_specify_key_prompt
+    , testCase "bob_normal_sign_and_verify_default_key_prompt_no_ci" bob_normal_sign_and_verify_default_key_prompt
+    , testCase "encrypt_file_no_ci" encrypt_file
+    , testCase "encrypt_stream_no_ci" encrypt_stream
     ]
 
 cbTests :: IO TestTree
@@ -57,7 +57,7 @@ cbTests = do
        then return $ testGroup "passphrase-cb"
                 [ testProperty "bob_encrypt_for_alice_decrypt"
                                $ bob_encrypt_for_alice_decrypt True
-                , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb_prompt_no_travis"
+                , testProperty "bob_encrypt_sign_for_alice_decrypt_verify_with_passphrase_cb_prompt_no_ci"
                                $ bob_encrypt_sign_for_alice_decrypt_verify True
                 ]
        else return $ testGroup "passphrase-cb" []
