@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - run: docker-compose build --pull
       - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} setup
       - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} clean
