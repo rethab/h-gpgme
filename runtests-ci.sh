@@ -12,4 +12,4 @@ fi
 docker-compose run --rm tests stack --stack-yaml "$stack_yaml" setup
 
 # Wrapper to run tests without prompts on CI
-docker-compose run --rm tests stack --stack-yaml "$stack_yaml" test --test-arguments="-p !**/*no_ci"
+docker-compose run --rm tests stack --stack-yaml "$stack_yaml" test --test-arguments='--pattern=!/no_ci/'
