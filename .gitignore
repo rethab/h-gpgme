@@ -12,3 +12,5 @@ test/bob/private-keys-v1.d/
 h-gpgme-*.tar.gz
 src/*.js
 src/*.css
+.idea
+h-gpgme.iml
