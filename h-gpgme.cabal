@@ -17,7 +17,6 @@ Extra-Source-Files:
   CHANGELOG.markdown
   README.markdown
   .gitignore
-  .travis.yml
 
 
 source-repository head
