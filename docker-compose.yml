@@ -1,4 +1,3 @@
-# For running tests on Travis-CI
 version: '2'
 services:
   tests:
