@@ -170,3 +170,9 @@ data PubKeyAlgo =
 -- | h-gpgme exception for wrapping exception which occur outside of the control of h-gpgme
 newtype HgpgmeException = HgpgmeException SomeException deriving (Show)
 instance Exception HgpgmeException
+
+-- | Flags for removeKey function
+data RemoveKeyFlags = RemoveKeyFlags {
+      allowSecret :: Bool -- ^ if False, only public keys are removed, otherwise secret keys are removed as well
+    , force       :: Bool -- ^ if True, don't ask for confirmation
+    } deriving (Show, Eq, Ord)

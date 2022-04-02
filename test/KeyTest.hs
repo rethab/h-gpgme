@@ -25,7 +25,7 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "getInexistentFromAlice" getInexistentPubFromAlice
         , testCase "checkAlicePubUserIds" checkAlicePubUserIds
         , testCase "checkAlicePubSubkeys" checkAlicePubSubkeys
-        , testCase "removeAliceKeyPromptNoCi" removeAliceKey
+        , testCase "removeAliceKey" removeAliceKey
         ]
 
 getAlicePubFromAlice :: Assertion
@@ -107,7 +107,7 @@ removeAliceKey = do
     do key <- getKey ctx alicePubFpr WithSecret
        startNum <- listKeys ctx WithSecret >>= \l -> return $ length l
        startNum @?= 1
-       ret <- removeKey ctx (fromJust key) WithSecret
+       ret <- removeKey ctx (fromJust key) (RemoveKeyFlags True True)
        endNum <- listKeys ctx WithSecret >>= \l -> return $ length l
        endNum @?= 0
        ret @?= Nothing

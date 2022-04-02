@@ -5,15 +5,21 @@
 
 packages:
 - completed:
-    hackage: bindings-gpgme-0.1.7@sha256:b486a4a93e614111b637c6ff7e719c19f3f7d921cbf50930e112e3948246e688,1009
+    sha256: fa73d045f11efeca31726d310c90fc34acdfe5c21040361c271547336ddc91dd
+    name: bindings-gpgme
+    subdir: bindings-gpgme
+    size: 159528
+    url: https://github.com/rethab/bindings-dsl/archive/70c503ef67f0898c0f131e8ed83e334d688007a0.tar.gz
     pantry-tree:
-      size: 275
-      sha256: ba3a7ad409c63b71653cd993a2eb040ad2412963db5a9e131a5f7cb3f6afde7b
+      sha256: bdab8fb31add2060053476134e248ff9ec1bccb76ed60a9472f4671a4eaf08c6
+      size: 326
+    version: 0.1.7
   original:
-    hackage: bindings-gpgme-0.1.7
+    subdir: bindings-gpgme
+    url: https://github.com/rethab/bindings-dsl/archive/70c503ef67f0898c0f131e8ed83e334d688007a0.tar.gz
 snapshots:
 - completed:
+    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
     size: 590100
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
   original: lts-18.28
