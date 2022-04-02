@@ -65,7 +65,7 @@ setListingMode = do
               kuids <- lift $ keyUserIds' aPubKey
               return $ concatMap keyuserSignatures kuids
     let sigs' = fromMaybe [] sigs
-    null sigs' @? "There should be some signatures, but there are non"
+    not (null sigs') @? "There should be some signatures, but there are non"
 
 -- Ensure that if an exception occurs then the expected exception type is returned so that we know
 -- the context was freed
