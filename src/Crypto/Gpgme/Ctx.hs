@@ -4,6 +4,7 @@ import Bindings.Gpgme
 import Control.Monad (when)
 import Control.Exception (SomeException(SomeException), catch, throwIO, toException)
 import Data.List (isPrefixOf)
+import Data.Maybe (fromMaybe)
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
@@ -52,7 +53,7 @@ newCtx homedir localeStr protocol =
 
 -- | Free a previously created 'Ctx'
 freeCtx :: Ctx -> IO ()
-freeCtx (Ctx {_ctx=ctxPtr}) =
+freeCtx Ctx {_ctx=ctxPtr} =
     do ctx <- peek ctxPtr
        c'gpgme_release ctx
        free ctxPtr
@@ -83,13 +84,13 @@ withCtx homedir localeStr prot f = do
 
 -- | Sets armor output on ctx
 setArmor :: Bool -> Ctx -> IO ()
-setArmor armored (Ctx {_ctx = ctxPtr}) = do
+setArmor armored Ctx {_ctx = ctxPtr} = do
     ctx <- peek ctxPtr
     c'gpgme_set_armor ctx (if armored then 1 else 0)
 
 -- | Sets the key listing mode on ctx
 setKeyListingMode :: [KeyListingMode] -> Ctx -> IO ()
-setKeyListingMode modes (Ctx {_ctx = ctxPtr}) = do
+setKeyListingMode modes Ctx {_ctx = ctxPtr} = do
     let m = foldl (\memo -> (memo .|.) . fromKeyListingMode) 0 modes
     ctx <- peek ctxPtr
     checkError "set_keylist_mode" =<< c'gpgme_set_keylist_mode ctx m
@@ -126,7 +127,7 @@ passphraseCb callback = do
             hint' <- peekCString hint
             info' <- peekCString info
             result <- callback hint' info' (prev_bad /= 0)
-            let phrase = maybe "" id result
+            let phrase = fromMaybe "" result
             err <- withCStringLen (phrase++"\n") $ \(s,len) ->
                 c'gpgme_io_writen fd (castPtr s) (fromIntegral len)
             when (err /= 0) $ checkError "passphraseCb" (fromIntegral err)
@@ -148,7 +149,7 @@ passphraseCb callback = do
 setPassphraseCallback :: Ctx                   -- ^ context
                       -> Maybe PassphraseCb    -- ^ a callback, or Nothing to disable
                       -> IO ()
-setPassphraseCallback (Ctx {_ctx=ctxPtr}) callback = do
+setPassphraseCallback Ctx {_ctx=ctxPtr} callback = do
     ctx <- peek ctxPtr
     let mode = case callback of
                    Nothing -> c'GPGME_PINENTRY_MODE_DEFAULT
@@ -182,7 +183,7 @@ progressCb callback = do
 setProgressCallback :: Ctx        -- ^ context
                     -> Maybe ProgressCb
                     -> IO ()
-setProgressCallback (Ctx {_ctx=ctxPtr}) callback = do
+setProgressCallback Ctx {_ctx=ctxPtr} callback = do
   ctx <- peek ctxPtr
   cb <- maybe (return nullFunPtr) progressCb callback
   c'gpgme_set_progress_cb ctx cb nullPtr

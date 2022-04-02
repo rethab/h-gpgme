@@ -26,7 +26,6 @@ import System.Posix.Types (Fd(Fd))
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
-import Control.Monad (liftM)
 import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT, mapExceptT)
 import Foreign
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
@@ -53,7 +52,7 @@ encryptSign' :: String -> Fpr -> Plain -> IO (Either String Encrypted)
 encryptSign' = encryptIntern' encryptSign
 
 orElse :: Monad m => m (Maybe a) -> e -> ExceptT e m a
-orElse action err = ExceptT $ maybe (Left err) return `liftM` action
+orElse action err = ExceptT $ maybe (Left err) return `fmap` action
 
 bimapExceptT :: Functor m => (x -> y) -> (a -> b) -> ExceptT x m a -> ExceptT y m b
 bimapExceptT f g = mapExceptT (fmap h)
@@ -89,7 +88,7 @@ encryptIntern :: (C'gpgme_ctx_t
                   -> Flag
                   -> Plain
                   -> IO (Either [InvalidKey] Encrypted) 
-encryptIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag plain = do
+encryptIntern enc_op Ctx {_ctx=ctxPtr} recPtrs flag plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
     BS.useAsCString plain $ \bs -> do
@@ -145,7 +144,7 @@ encryptFdIntern :: (C'gpgme_ctx_t
                -> Fd  -- ^ Plaintext data
                -> Fd  -- ^ Ciphertext data
                -> IO (Either [InvalidKey] ())
-encryptFdIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag (Fd plainCInt) (Fd cipherCInt) = do
+encryptFdIntern enc_op Ctx {_ctx=ctxPtr} recPtrs flag (Fd plainCInt) (Fd cipherCInt) = do
   -- Initialize plaintext buffer
   plainBufPtr <- malloc
   _ <- c'gpgme_data_new_from_fd plainBufPtr plainCInt
@@ -171,7 +170,7 @@ encryptFdIntern enc_op (Ctx {_ctx=ctxPtr}) recPtrs flag (Fd plainCInt) (Fd ciphe
 
   let res = if recPtr /= nullPtr
               then Left (collectFprs recPtr)
-              else Right (())
+              else Right ()
 
   free cipherBufPtr
 
@@ -218,7 +217,7 @@ decryptIntern :: (C'gpgme_ctx_t
                   -> Ctx
                   -> Encrypted
                   -> IO (Either DecryptError Plain)
-decryptIntern dec_op (Ctx {_ctx=ctxPtr}) cipher = do
+decryptIntern dec_op Ctx {_ctx=ctxPtr} cipher = do
     -- init buffer with cipher
     cipherBufPtr <- malloc
     BS.useAsCString cipher $ \bs -> do
@@ -263,7 +262,7 @@ decryptFdIntern :: (C'gpgme_ctx_t
                   -> Fd
                   -> Fd
                   -> IO (Either DecryptError ())
-decryptFdIntern dec_op (Ctx {_ctx=ctxPtr}) (Fd cipherCInt) (Fd plainCInt)= do
+decryptFdIntern dec_op Ctx {_ctx=ctxPtr} (Fd cipherCInt) (Fd plainCInt)= do
   -- Initialize ciphertext buffer
   cipherBufPtr <- malloc
   _ <- c'gpgme_data_new_from_fd cipherBufPtr cipherCInt
@@ -281,7 +280,7 @@ decryptFdIntern dec_op (Ctx {_ctx=ctxPtr}) (Fd cipherCInt) (Fd plainCInt)= do
 
   let res = if errcode /= noError
               then Left  (toDecryptError errcode)
-              else Right (())
+              else Right ()
 
   free cipherBufPtr
   free plainBufPtr
@@ -307,7 +306,7 @@ signIntern :: (    C'gpgme_ctx_t
               -> SignMode
               -> Plain
               -> IO (Either [InvalidKey] Encrypted)
-signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs mode plain = do
+signIntern sign_op Ctx {_ctx=ctxPtr} signPtrs mode plain = do
     -- init buffer with plaintext
     plainBufPtr <- malloc
     BS.useAsCString plain $ \bs -> do
@@ -324,7 +323,7 @@ signIntern sign_op (Ctx {_ctx=ctxPtr}) signPtrs mode plain = do
     ctx <- peek ctxPtr
 
     -- add signing keys
-    _ <- mapM ( \kForPtr -> withForeignPtr (unKey kForPtr)
+    mapM_ ( \kForPtr -> withForeignPtr (unKey kForPtr)
            (\kPtr -> do
              k <- peek kPtr
              c'gpgme_signers_add ctx k
@@ -419,7 +418,7 @@ verifyInternal :: (    C'gpgme_ctx_t
                   -> Signature
                   -> BS.ByteString
                   -> IO (Either GpgmeError (VerificationResult, a))
-verifyInternal ver_op (Ctx {_ctx=ctxPtr}) sig dat = do
+verifyInternal ver_op Ctx {_ctx=ctxPtr} sig dat = do
     -- init buffer with signature
     sigBufPtr <- malloc
     BS.useAsCString sig $ \bs -> do
