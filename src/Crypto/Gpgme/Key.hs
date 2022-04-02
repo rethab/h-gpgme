@@ -30,7 +30,7 @@ import Crypto.Gpgme.Internal
 listKeys :: Ctx            -- ^ context to operate in
          -> IncludeSecret  -- ^ whether to include the secrets
          -> IO [Key]
-listKeys (Ctx {_ctx=ctxPtr}) secret = do
+listKeys Ctx {_ctx=ctxPtr} secret = do
     peek ctxPtr >>= \ctx ->
         c'gpgme_op_keylist_start ctx nullPtr (fromSecret secret) >>= checkError "listKeys"
     let eof = 16383
@@ -51,7 +51,7 @@ getKey :: Ctx           -- ^ context to operate in
        -> Fpr           -- ^ fingerprint
        -> IncludeSecret -- ^ whether to include secrets when searching for the key
        -> IO (Maybe Key)
-getKey (Ctx {_ctx=ctxPtr}) fpr secret = do
+getKey Ctx {_ctx=ctxPtr} fpr secret = do
     key <- allocKey
     ret <- BS.useAsCString fpr $ \cFpr ->
         peek ctxPtr >>= \ctx ->
@@ -66,7 +66,7 @@ removeKey :: Ctx                    -- ^ context to operate in
           -> Key                    -- ^ key to delete
           -> IncludeSecret          -- ^ include secret keys for deleting
           -> IO (Maybe GpgmeError)
-removeKey (Ctx {_ctx=ctxPtr}) key secret = do
+removeKey Ctx {_ctx=ctxPtr} key secret = do
   ctx <- peek ctxPtr
   ret <- withKeyPtr key (\keyPtr -> do
     k <- peek keyPtr
@@ -98,8 +98,8 @@ readKeySignatures :: C'gpgme_key_sig_t -> IO [KeySignature]
 readKeySignatures p0 = peekList c'_gpgme_key_sig'next p0 >>= mapM readSig
   where
     readSig sig =
-        KeySig <$> pure (toPubKeyAlgo $ c'_gpgme_key_sig'pubkey_algo sig)
-               <*> peekCString (c'_gpgme_key_sig'keyid sig)
+        (KeySig (toPubKeyAlgo $ c'_gpgme_key_sig'pubkey_algo sig)
+               <$> peekCString (c'_gpgme_key_sig'keyid sig))
                <*> pure (readTime $ c'_gpgme_key_sig'timestamp sig)
                <*> pure (readTime $ c'_gpgme_key_sig'expires sig)
                <*> signerId
@@ -141,9 +141,9 @@ keyUserIds' key = withForeignPtr (unKey key) $ \keyPtr -> do
   where
     readKeyUserId :: C'_gpgme_user_id -> IO KeyUserId
     readKeyUserId uid =
-        KeyUserId <$> pure (toValidity $ c'_gpgme_user_id'validity uid)
-                  <*> userId'
-                  <*> readKeySignatures (c'_gpgme_user_id'signatures uid)
+        (KeyUserId (toValidity $ c'_gpgme_user_id'validity uid)
+          <$> userId')
+          <*> readKeySignatures (c'_gpgme_user_id'signatures uid)
       where
         userId' :: IO UserId
         userId' =
@@ -174,13 +174,14 @@ keySubKeys' key = withForeignPtr (unKey key) $ \keyPtr -> do
   where
     readSubKey :: C'_gpgme_subkey -> IO SubKey
     readSubKey sub =
-        SubKey <$> pure (toPubKeyAlgo $ c'_gpgme_subkey'pubkey_algo sub)
-               <*> pure (fromIntegral $ c'_gpgme_subkey'length sub)
-               <*> peekCString (c'_gpgme_subkey'keyid sub)
-               <*> BS.packCString (c'_gpgme_subkey'fpr sub)
-               <*> pure (readTime $ c'_gpgme_subkey'timestamp sub)
-               <*> pure (readTime $ c'_gpgme_subkey'expires sub)
-               <*> orNull peekCString (c'_gpgme_subkey'card_number sub)
+        (SubKey
+            (toPubKeyAlgo $ c'_gpgme_subkey'pubkey_algo sub)
+            (fromIntegral $ c'_gpgme_subkey'length sub)
+            <$> peekCString (c'_gpgme_subkey'keyid sub))
+        <*> BS.packCString (c'_gpgme_subkey'fpr sub)
+        <*> pure (readTime $ c'_gpgme_subkey'timestamp sub)
+        <*> pure (readTime $ c'_gpgme_subkey'expires sub)
+        <*> orNull peekCString (c'_gpgme_subkey'card_number sub)
 
 orNull :: (Ptr a -> IO b) -> Ptr a -> IO (Maybe b)
 orNull f ptr

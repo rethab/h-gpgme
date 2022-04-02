@@ -6,6 +6,17 @@ env:
   STACK_YAML: stack.yaml
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 'Set up HLint'
+        uses: haskell/actions/hlint-setup@v1
+
+      - name: 'Run HLint'
+        uses: haskell/actions/hlint-run@v1
+
   test:
     runs-on: ubuntu-latest
     steps:

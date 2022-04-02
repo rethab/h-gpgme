@@ -2,7 +2,7 @@ module Crypto.Gpgme.Types where
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
-import Data.Maybe(catMaybes)
+import Data.Maybe (mapMaybe)
 import Foreign
 import qualified Foreign.Concurrent as FC
 import Foreign.C.String (peekCString)
@@ -67,7 +67,7 @@ data SignatureSummary =
 
 -- | Translate the gpgme_sigsum_t bit vector to a list of SignatureSummary
 toSignatureSummaries :: C'gpgme_sigsum_t -> [SignatureSummary]
-toSignatureSummaries x = catMaybes $ map (\(mask, val) -> if mask .&. x == 0 then Nothing else Just val)
+toSignatureSummaries x = mapMaybe (\(mask, val) -> if mask .&. x == 0 then Nothing else Just val)
     [ (c'GPGME_SIGSUM_BAD_POLICY , BadPolicy)
     , (c'GPGME_SIGSUM_CRL_MISSING, CrlMissing)
     , (c'GPGME_SIGSUM_CRL_TOO_OLD, CrlTooOld)
@@ -101,7 +101,7 @@ allocKey = do
 
 -- | Perform an action with the pointer to a 'Key'
 withKeyPtr :: Key -> (Ptr C'gpgme_key_t -> IO a) -> IO a
-withKeyPtr (Key fPtr) f = withForeignPtr fPtr f
+withKeyPtr (Key fPtr) = withForeignPtr fPtr
 
 -- | Whether to include secret keys when searching
 data IncludeSecret =
