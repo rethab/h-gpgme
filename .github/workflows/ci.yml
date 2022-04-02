@@ -16,6 +16,8 @@ jobs:
 
       - name: 'Run HLint'
         uses: haskell/actions/hlint-run@v1
+        with:
+          fail-on: 'warning'
 
   test:
     runs-on: ubuntu-latest
