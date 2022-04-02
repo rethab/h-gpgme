@@ -6,7 +6,7 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.ByteString as BS
 import Data.Maybe (fromMaybe)
 import Control.Exception (catch, fromException)
-import System.IO.Error (IOError, isUserError)
+import System.IO.Error (isUserError)
 
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
@@ -16,67 +16,67 @@ import Crypto.Gpgme
 import TestUtil
 
 tests :: [TestTree]
-tests = [ testCase "run_action_with_ctx" run_action_with_ctx
-        , testCase "set_armor" set_armor
-        , testCase "unset_armor" unset_armor
-        , testCase "no_set_listing_mode" no_set_listing_mode
-        , testCase "set_listing_mode" set_listing_mode
-        , testCase "exception_safe" exception_safe
+tests = [ testCase "runActionWithCtx" runActionWithCtx
+        , testCase "setArmor" setArmor'
+        , testCase "unsetArmor" unsetArmor
+        , testCase "noSetListingMode" noSetListingMode
+        , testCase "setListingMode" setListingMode
+        , testCase "exceptionSafe" exceptionSafe
         ]
 
-run_action_with_ctx :: Assertion
-run_action_with_ctx = do
+runActionWithCtx :: Assertion
+runActionWithCtx = do
     res <- withCtx "test/alice" "C" OpenPGP $ \_ ->
               return "foo" :: IO BS.ByteString
     res @?= "foo"
 
-set_armor :: Assertion
-set_armor = do
+setArmor' :: Assertion
+setArmor' = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
     enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
               lift $ setArmor True bCtx
               lift $ encrypt bCtx [aPubKey] NoFlag "plaintext"
     (armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Armored must start with " ++ show armorPrefix)
 
-unset_armor :: Assertion
-unset_armor = do
+unsetArmor :: Assertion
+unsetArmor = do
     let armorPrefix = "-----BEGIN PGP MESSAGE-----"
     enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
               lift $ setArmor False bCtx
               lift $ encrypt bCtx [aPubKey] NoFlag "plaintext"
-    (not $ armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Binary must not start with " ++ show armorPrefix)
+    not (armorPrefix `BS.isPrefixOf` fromJustAndRight enc) @? ("Binary must not start with " ++ show armorPrefix)
 
-no_set_listing_mode :: Assertion
-no_set_listing_mode = do
+noSetListingMode :: Assertion
+noSetListingMode = do
     sigs <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
               kuids <- lift $ keyUserIds' aPubKey
               return $ concatMap keyuserSignatures kuids
     let sigs' = fromMaybe [] sigs
-    (length sigs' == 0) @? ("There should be no signatures, but there are some")
+    null sigs' @? "There should be no signatures, but there are some"
 
-set_listing_mode :: Assertion
-set_listing_mode = do
+setListingMode :: Assertion
+setListingMode = do
     sigs <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
               lift $ setKeyListingMode [KeyListingLocal, KeyListingSigs] bCtx
-              aPubKey <- MaybeT $ getKey bCtx alice_pub_fpr NoSecret
+              aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
               kuids <- lift $ keyUserIds' aPubKey
               return $ concatMap keyuserSignatures kuids
     let sigs' = fromMaybe [] sigs
-    (length sigs' > 0) @? ("There should be some signatures, but there are non")
+    not (null sigs') @? "There should be some signatures, but there are non"
 
 -- Ensure that if an exception occurs then the expected exception type is returned so that we know
 -- the context was freed
-exception_safe :: Assertion
-exception_safe = catch
+exceptionSafe :: Assertion
+exceptionSafe = catch
   ( do
     res <- withCtx "test/alice" "C" OpenPGP $ \_ ->
-      (ioError $ userError "Busted") >>
+      ioError (userError "Busted") >>
       return "foo" :: IO BS.ByteString
     res @?= "foo")
   ( \(HgpgmeException e) -> do
-    let mioe = (fromException e) :: Maybe IOError
+    let mioe = fromException e :: Maybe IOError
     maybe (assertFailure $ show mioe) (\ioe -> isUserError ioe @?= True) mioe
   )

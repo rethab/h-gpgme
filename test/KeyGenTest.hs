@@ -25,15 +25,15 @@ import qualified  Crypto.Gpgme.Key.Gen as G
 import TestUtil
 
 tests :: [TestTree]
-tests = [ testCase "all_gen_key_parameters" all_gen_key_parameters
-        , testCase "expire_date_days" expire_date_days
-        , testCase "expire_date_weeks" expire_date_weeks
-        , testCase "expire_date_months" expire_date_months
-        , testCase "expire_date_years" expire_date_years
-        , testCase "expire_date_seconds" expire_date_seconds
-        , testCase "creation_date_seconds" creation_date_seconds
-        , testCase "gen_key_no_ci" gen_key
-        , testCase "progress_callback_no_ci" progress_callback
+tests = [ testCase "allGenKeyParameters" allGenKeyParameters
+        , testCase "expireDateDays" expireDateDays
+        , testCase "expireDateWeeks" expireDateWeeks
+        , testCase "expireDateMonths" expireDateMonths
+        , testCase "expireDateYears" expireDateYears
+        , testCase "expireDateSeconds" expireDateSeconds
+        , testCase "creationDateSeconds" creationDateSeconds
+        , testCase "genKeyNoCi" genKey
+        , testCase "progressCallbackNoCi" progressCallback
         ]
 
 -- For getting values from Either
@@ -42,8 +42,8 @@ errorOnLeft (Right x) = x
 errorOnLeft (Left s)  = error s
 
 -- Test parameter list generation for generating keys
-all_gen_key_parameters :: Assertion
-all_gen_key_parameters =
+allGenKeyParameters :: Assertion
+allGenKeyParameters =
   let params = (def :: G.GenKeyParams) -- G.defaultGenKeyParams
         { G.keyType = Just Dsa
         , G.keyLength = Just $ errorOnLeft $ G.bitSize 1024
@@ -67,7 +67,7 @@ all_gen_key_parameters =
         , G.keyserver = "https://keyserver.com/"
         , G.handle = "Key handle here"
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: DSA\n\
       \Key-Length: 1024\n\
@@ -87,9 +87,9 @@ all_gen_key_parameters =
       \Handle: Key handle here\n\
       \</GnupgKeyParms>\n"
 
-gen_key :: Assertion
-gen_key = do
-  tmpDir <- createTemporaryTestDir "gen_key"
+genKey :: Assertion
+genKey = do
+  tmpDir <- createTemporaryTestDir "genKey"
 
   ret <- withCtx tmpDir "C" OpenPGP $ \ctx -> do
     let params = (def :: G.GenKeyParams)
@@ -109,87 +109,87 @@ gen_key = do
   -- Cleanup temporary directory
   removeDirectoryRecursive tmpDir
   either
-    (\(l) -> assertFailure $ "Left was return value " ++ (show l))
-    (\(r) -> assertBool ("Fingerprint ("
-                        ++ (unpack r)
+    (\l -> assertFailure $ "Left was return value " ++ show l)
+    (\r -> assertBool ("Fingerprint ("
+                        ++ unpack r
                         ++ ") starts with '0x' indicating it is actually a pointer.")
       (not $ isPrefixOf "0x" (unpack r))) ret
 
 -- Other ExpireDate to string possibilities
-expire_date_days :: Assertion
-expire_date_days =
+expireDateDays :: Assertion
+expireDateDays =
   let (Just p) = G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireD p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Expire-Date: 10d\n\
       \</GnupgKeyParms>\n"
 
-expire_date_weeks :: Assertion
-expire_date_weeks =
+expireDateWeeks :: Assertion
+expireDateWeeks =
   let (Just p) = G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireW p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Expire-Date: 10w\n\
       \</GnupgKeyParms>\n"
 
-expire_date_months :: Assertion
-expire_date_months =
+expireDateMonths :: Assertion
+expireDateMonths =
   let (Just p) = G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireM p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Expire-Date: 10m\n\
       \</GnupgKeyParms>\n"
 
-expire_date_years :: Assertion
-expire_date_years =
+expireDateYears :: Assertion
+expireDateYears =
   let (Just p) = G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireY p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Expire-Date: 10y\n\
       \</GnupgKeyParms>\n"
 
-expire_date_seconds :: Assertion
-expire_date_seconds =
+expireDateSeconds :: Assertion
+expireDateSeconds =
   let (Just p) = G.toPositive 123456
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireS p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Expire-Date: seconds=123456\n\
       \</GnupgKeyParms>\n"
 
-creation_date_seconds :: Assertion
-creation_date_seconds =
+creationDateSeconds :: Assertion
+creationDateSeconds =
   let (Just p) = G.toPositive 123456
       params = (def :: G.GenKeyParams) {
           G.creationDate = Just $ G.CreationS p
         }
-  in (G.toParamsString params) @?=
+  in G.toParamsString params @?=
       "<GnupgKeyParms format=\"internal\">\n\
       \Key-Type: default\n\
       \Creation-Date: seconds=123456\n\
       \</GnupgKeyParms>\n"
 
-progress_callback :: Assertion
-progress_callback = do
+progressCallback :: Assertion
+progressCallback = do
   tmpDir <- createTemporaryTestDir "progress_callback"
 
   -- Setup context
@@ -220,9 +220,9 @@ progress_callback = do
   -- Make sure the file has some evidence of progress notifications
   ret <- withFile (tmpDir </> "testProgress.log") ReadMode (\h -> do
     contents <- hGetContents h
-    ((length $ lines contents) > 0) @? "No lines in progress file")
+    not (null (lines contents)) @? "No lines in progress file")
 
   -- Cleanup test
   removeDirectoryRecursive tmpDir
-  assertBool ("Left was return value: " ++ show ret) (either (\_ -> False) (\_ -> True) genRet)
-  return $ ret
+  assertBool ("Left was return value: " ++ show ret) (either (const False) (const True) genRet)
+  return ret

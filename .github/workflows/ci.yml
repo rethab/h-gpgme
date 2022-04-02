@@ -13,9 +13,13 @@ jobs:
 
       - name: 'Set up HLint'
         uses: haskell/actions/hlint-setup@v1
+        with:
+          version: 3.2.7
 
       - name: 'Run HLint'
         uses: haskell/actions/hlint-run@v1
+        with:
+          fail-on: 'warning'
 
   test:
     runs-on: ubuntu-latest
