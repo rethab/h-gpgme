@@ -25,8 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: docker-compose build --pull
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} setup
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} clean
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
-      - run: ./runtests-ci.sh ${STACK_YAML}
+      - uses: haskell/actions/setup@v1
+        with:
+      - run: stack test --test-arguments='--pattern=!/NoCi/'
