@@ -66,7 +66,7 @@ removeKey :: Ctx                    -- ^ context to operate in
           -> Key                    -- ^ key to delete
           -> RemoveKeyFlags         -- ^ flags for remove operation
           -> IO (Maybe GpgmeError)
-removeKey Ctx {_ctx=ctxPtr} key secret = do
+removeKey Ctx {_ctx=ctxPtr} key flags = do
   ctx <- peek ctxPtr
   ret <- withKeyPtr key (\keyPtr -> do
     k <- peek keyPtr
