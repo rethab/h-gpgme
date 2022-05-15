@@ -46,11 +46,7 @@ packages:
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps:
-  - github: rethab/bindings-dsl
-    commit: 70c503ef67f0898c0f131e8ed83e334d688007a0
-    subdirs:
-      - bindings-gpgme
+extra-deps: [bindings-gpgme-0.1.8]
 
 # Override default flag values for local packages and extra-deps
 flags: {}
