@@ -26,8 +26,8 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "checkAlicePubUserIds" checkAlicePubUserIds
         , testCase "checkAlicePubSubkeys" checkAlicePubSubkeys
         , testCase "removeAliceKey" removeAliceKey
-        , testCase "read_from_file_works" read_from_file_works
-        , testCase "read_from_file_doesn't_exist" read_from_file_doesn't_exist
+        , testCase "readFromFileWorks" readFromFileWorks
+        , testCase "readFromFileDoesn'tExist" readFromFileDoesn'tExist
         ]
 
 getAlicePubFromAlice :: Assertion
@@ -117,14 +117,14 @@ removeAliceKey = do
   -- Cleanup test
   removeDirectoryRecursive tmpDir
 
-read_from_file_works :: Assertion
-read_from_file_works = do
+readFromFileWorks :: Assertion
+readFromFileWorks = do
     withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
       mRet <- importKeyFromFile ctx "test/real-person/real-person.key"
       mRet @?= Nothing
 
-read_from_file_doesn't_exist :: Assertion
-read_from_file_doesn't_exist = do
+readFromFileDoesn'tExist :: Assertion
+readFromFileDoesn'tExist = do
     withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
       mRet <- importKeyFromFile ctx "this-file-doesn't-exist"
       isJust mRet @? "shouldn't be able to read this file"
