@@ -73,16 +73,19 @@ importKeyFromFile Ctx {_ctx=ctxPtr} fp = do
   ret <-
     BS.useAsCString (BSC8.pack fp) $ \cFp ->
       c'gpgme_data_new_from_file dataPtr cFp 1
-  case ret of
-    x | x == noError -> do
-      retIn <- do
-        ctx <- peek ctxPtr
-        dat <- peek dataPtr
-        c'gpgme_op_import ctx dat
-      pure $ if retIn == noError
-         then Nothing
-         else Just $ GpgmeError ret
-    err -> pure $ Just $ GpgmeError err
+  mGpgErr <-
+    case ret of
+      x | x == noError -> do
+        retIn <- do
+          ctx <- peek ctxPtr
+          dat <- peek dataPtr
+          c'gpgme_op_import ctx dat
+        pure $ if retIn == noError
+          then Nothing
+          else Just $ GpgmeError ret
+      err -> pure $ Just $ GpgmeError err
+  free dataPtr
+  pure mGpgErr
 
 -- | Removes the 'Key' from @context@
 removeKey :: Ctx                    -- ^ context to operate in
