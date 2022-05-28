@@ -1,5 +1,6 @@
 name: CI
 
+# triggering on PRs means the workflows are also triggered on PRs from forks (only push doesn't)
 on:
   pull_request:
     branches:
