@@ -1,6 +1,13 @@
 name: CI
 
-on: push
+# triggering on PRs means the workflows are also triggered on PRs from forks (only push doesn't)
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
 
 env:
   STACK_YAML: stack.yaml

@@ -1,5 +1,6 @@
 module Crypto.Gpgme.Key (
       getKey
+    , importKeyFromFile
     , listKeys
     , removeKey
       -- * Information about keys
@@ -17,6 +18,7 @@ module Crypto.Gpgme.Key (
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC8
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Foreign
@@ -60,6 +62,30 @@ getKey Ctx {_ctx=ctxPtr} fpr secret = do
     if ret == noError
         then return . Just $ key
         else return Nothing
+
+-- | Import a key from a file, this happens in two steps: populate a
+-- @gpgme_data_t@ with the contents of the file, import the @gpgme_data_t@
+importKeyFromFile :: Ctx -- ^ context to operate in
+                  -> FilePath -- ^ file path to read from
+                  -> IO (Maybe GpgmeError)
+importKeyFromFile Ctx {_ctx=ctxPtr} fp = do
+  dataPtr <- newDataBuffer
+  ret <-
+    BS.useAsCString (BSC8.pack fp) $ \cFp ->
+      c'gpgme_data_new_from_file dataPtr cFp 1
+  mGpgErr <-
+    case ret of
+      x | x == noError -> do
+        retIn <- do
+          ctx <- peek ctxPtr
+          dat <- peek dataPtr
+          c'gpgme_op_import ctx dat
+        pure $ if retIn == noError
+          then Nothing
+          else Just $ GpgmeError ret
+      err -> pure $ Just $ GpgmeError err
+  free dataPtr
+  pure mGpgErr
 
 -- | Removes the 'Key' from @context@
 removeKey :: Ctx                    -- ^ context to operate in
