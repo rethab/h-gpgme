@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0.0
+
+### New Features
+
+- BREAKING: Add force flag to removeKey function: https://github.com/rethab/h-gpgme/pull/57
+- Add function to import key from file: https://github.com/rethab/h-gpgme/pull/54 (thanks @chiropical)
+
+### Maintenance
+
+- Migrate to GitHub Actions: https://github.com/rethab/h-gpgme/pull/55, https://github.com/rethab/h-gpgme/pull/58, and https://github.com/rethab/h-gpgme/pull/59
+
 ## 0.5.1.0
 
 ### New Features

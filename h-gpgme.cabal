@@ -1,5 +1,5 @@
 Name:                h-gpgme
-Version:             0.5.1.0
+Version:             0.6.0.0
 Description:         High Level Binding for GnuPG Made Easy (gpgme): A Haskell API for the gpgme C library.
 Synopsis:            High Level Binding for GnuPG Made Easy (gpgme)
 License:             MIT
