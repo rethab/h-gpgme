@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1.0
+
+### New Features
+
+- feat: performance improvement / copy more than one byte from gpgme_data: https://github.com/rethab/h-gpgme/pull/61
+
+### Maintenance
+
+- chore(ci): Run tests without docker-compose in CI & cross-test with various GHC versions: https://github.com/rethab/h-gpgme/pull/60
+
 ## 0.6.0.0
 
 ### New Features
