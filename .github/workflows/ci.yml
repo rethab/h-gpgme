@@ -30,10 +30,29 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    name: test ghc ${{ matrix.ghc-version }}
+    strategy:
+      matrix:
+        ghc-version: [8.8, 9.0, 9.2, latest]
     steps:
+      - run: sudo apt-get install -y libgpgme-dev
       - uses: actions/checkout@v3
-      - run: docker-compose build --pull
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} setup
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} clean
-      - run: docker-compose run --rm tests stack --stack-yaml ${STACK_YAML} build --haddock --no-haddock-deps
-      - run: ./runtests-ci.sh ${STACK_YAML}
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.ghc-version }}
+          enable-stack: true
+      - run: stack test --test-arguments='--pattern=!/NoCi/'
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install -y libgpgme-dev
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v1
+        with:
+          # can't build docs on latest ghc, because https://github.com/haskell/cabal/issues/8104
+          ghc-version: 8.8
+          enable-stack: true
+      - run: cabal update
+      - run: cabal build
+      - run: cabal v2-haddock --builddir="$(mktemp -d dist-docs.XXXXXX)" --haddock-for-hackage --enable-doc
