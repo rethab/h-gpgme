@@ -31,3 +31,12 @@ jobs:
           ghc-version: '8.8'
           enable-stack: true
       - run: stack test --test-arguments='--pattern=!/NoCi/'
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '8.8'
+          enable-stack: true
+      - run: cabal v2-haddock --builddir="$(mktemp -d dist-docs.XXXXXX)" --haddock-for-hackage --enable-doc
