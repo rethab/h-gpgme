@@ -451,9 +451,3 @@ verifyInternal ver_op Ctx {_ctx=ctxPtr} sig dat = do
     free datBufPtr
 
     return res'
-
-newDataBuffer :: IO (Ptr C'gpgme_data_t)
-newDataBuffer = do
-    resultBufPtr <- malloc
-    checkError "data_new" =<< c'gpgme_data_new resultBufPtr
-    return resultBufPtr

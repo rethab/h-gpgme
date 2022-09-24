@@ -1,5 +1,6 @@
 module Crypto.Gpgme.Key (
       getKey
+    , importKeyFromFile
     , listKeys
     , removeKey
       -- * Information about keys
@@ -17,6 +18,7 @@ module Crypto.Gpgme.Key (
 
 import Bindings.Gpgme
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC8
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Foreign
@@ -61,24 +63,46 @@ getKey Ctx {_ctx=ctxPtr} fpr secret = do
         then return . Just $ key
         else return Nothing
 
+-- | Import a key from a file, this happens in two steps: populate a
+-- @gpgme_data_t@ with the contents of the file, import the @gpgme_data_t@
+importKeyFromFile :: Ctx -- ^ context to operate in
+                  -> FilePath -- ^ file path to read from
+                  -> IO (Maybe GpgmeError)
+importKeyFromFile Ctx {_ctx=ctxPtr} fp = do
+  dataPtr <- newDataBuffer
+  ret <-
+    BS.useAsCString (BSC8.pack fp) $ \cFp ->
+      c'gpgme_data_new_from_file dataPtr cFp 1
+  mGpgErr <-
+    case ret of
+      x | x == noError -> do
+        retIn <- do
+          ctx <- peek ctxPtr
+          dat <- peek dataPtr
+          c'gpgme_op_import ctx dat
+        pure $ if retIn == noError
+          then Nothing
+          else Just $ GpgmeError ret
+      err -> pure $ Just $ GpgmeError err
+  free dataPtr
+  pure mGpgErr
+
 -- | Removes the 'Key' from @context@
 removeKey :: Ctx                    -- ^ context to operate in
           -> Key                    -- ^ key to delete
-          -> IncludeSecret          -- ^ include secret keys for deleting
+          -> RemoveKeyFlags         -- ^ flags for remove operation
           -> IO (Maybe GpgmeError)
-removeKey Ctx {_ctx=ctxPtr} key secret = do
+removeKey Ctx {_ctx=ctxPtr} key flags = do
   ctx <- peek ctxPtr
   ret <- withKeyPtr key (\keyPtr -> do
     k <- peek keyPtr
-    c'gpgme_op_delete ctx k s)
+    c'gpgme_op_delete_ext ctx k cFlags)
   if ret == 0
     then return Nothing
     else return $ Just $ GpgmeError ret
   where
-    s = secretToCInt secret
-    secretToCInt :: IncludeSecret -> CInt
-    secretToCInt WithSecret = 1
-    secretToCInt NoSecret   = 0
+    cFlags = (if allowSecret flags then 1 else 0) .|. (if force flags then 2 else 0)
+
 
 -- | A key signature
 data KeySignature = KeySig { keysigAlgorithm :: PubKeyAlgo

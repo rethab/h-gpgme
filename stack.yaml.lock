@@ -5,15 +5,15 @@
 
 packages:
 - completed:
-    hackage: bindings-gpgme-0.1.7@sha256:b486a4a93e614111b637c6ff7e719c19f3f7d921cbf50930e112e3948246e688,1009
     pantry-tree:
+      sha256: f1445c8b869d022d2ea9019624b095775b60e2d4282097bf5b7ffaf752518d85
       size: 275
-      sha256: ba3a7ad409c63b71653cd993a2eb040ad2412963db5a9e131a5f7cb3f6afde7b
+    hackage: bindings-gpgme-0.1.8@sha256:91ce499f1fd03129663f52dfbebd843502aba77e2c52e1da44f976db64ca2fc3,1114
   original:
-    hackage: bindings-gpgme-0.1.7
+    hackage: bindings-gpgme-0.1.8
 snapshots:
 - completed:
+    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
     size: 590100
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
   original: lts-18.28
