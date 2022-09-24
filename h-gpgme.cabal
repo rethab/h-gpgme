@@ -9,7 +9,9 @@ Maintainer:          rethab@protonmail.com
 Copyright:           (c) Reto 2022
 Homepage:            https://github.com/rethab/h-gpgme
 Bug-reports:         https://github.com/rethab/h-gpgme/issues
-Tested-With:         GHC==7.10.3
+Tested-With:           GHC==8.8
+                     , GHC==9.0
+                     , GHC==9.2
 Category:            Cryptography
 Build-Type:          Simple
 Cabal-Version:       >=1.10

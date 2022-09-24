@@ -14,5 +14,5 @@ src/*.js
 src/*.css
 .idea
 h-gpgme.iml
-dist-newstyle
-dist-docs.*
+dist-newstyle/
+dist-docs.*/
