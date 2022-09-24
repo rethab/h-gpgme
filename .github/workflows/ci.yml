@@ -39,4 +39,6 @@ jobs:
         with:
           ghc-version: '8.8'
           enable-stack: true
+      - run: cabal update
+      - run: cabal build
       - run: cabal v2-haddock --builddir="$(mktemp -d dist-docs.XXXXXX)" --haddock-for-hackage --enable-doc
