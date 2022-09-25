@@ -3,6 +3,7 @@ module Crypto.Gpgme.Key (
     , importKeyFromFile
     , listKeys
     , removeKey
+    , searchKeys
       -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)
@@ -28,13 +29,29 @@ import System.IO.Unsafe
 import Crypto.Gpgme.Types
 import Crypto.Gpgme.Internal
 
--- | Returns a list of known 'Key's from the @context@.
+-- | Returns a list of all known 'Key's from the @context@.
 listKeys :: Ctx            -- ^ context to operate in
          -> IncludeSecret  -- ^ whether to include the secrets
          -> IO [Key]
-listKeys Ctx {_ctx=ctxPtr} secret = do
+listKeys ctx secret = listKeys' ctx secret nullPtr
+
+-- | Returns a list of known 'Key's from the @context@ that match a given pattern.
+searchKeys :: Ctx            -- ^ context to operate in
+           -> IncludeSecret  -- ^ whether to include the secrets
+           -> String         -- ^ The pattern to look for; It is typically
+                             -- matched against the user ids of a key.
+           -> IO [Key]
+searchKeys ctx secret pat = BS.useAsCString (BSC8.pack pat) (listKeys' ctx secret)
+
+-- | Internal helper function used by both `listKeys` and `searchKeys`.
+listKeys' :: Ctx            -- ^ context to operate in
+          -> IncludeSecret  -- ^ whether to include the secrets
+          -> CString        -- ^ The pattern to look for; It is typically
+                            -- matched against the user ids of a key.
+          -> IO [Key]
+listKeys' Ctx {_ctx=ctxPtr} secret pat = do
     peek ctxPtr >>= \ctx ->
-        c'gpgme_op_keylist_start ctx nullPtr (fromSecret secret) >>= checkError "listKeys"
+        c'gpgme_op_keylist_start ctx pat (fromSecret secret) >>= checkError "listKeys"
     let eof = 16383
         go accum = do
             key <- allocKey
