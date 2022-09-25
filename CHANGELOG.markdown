@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2.0
+
+### New Features
+
+- feat: add searchKeys function: https://github.com/rethab/h-gpgme/pull/52
+
 ## 0.6.1.0
 
 ### New Features
