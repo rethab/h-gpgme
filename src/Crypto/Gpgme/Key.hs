@@ -38,13 +38,16 @@ listKeys ctx secret = listKeys' ctx secret nullPtr
 -- | Returns a list of known 'Key's from the @context@ that match a given pattern.
 searchKeys :: Ctx            -- ^ context to operate in
            -> IncludeSecret  -- ^ whether to include the secrets
-           -> String         -- ^ The pattern to look for
+           -> String         -- ^ The pattern to look for; It is typically
+                             -- matched against the user ids of a key.
            -> IO [Key]
 searchKeys ctx secret pat = BS.useAsCString (BSC8.pack pat) (listKeys' ctx secret)
 
+-- | Internal helper function used by both `listKeys` and `searchKeys`.
 listKeys' :: Ctx            -- ^ context to operate in
           -> IncludeSecret  -- ^ whether to include the secrets
-          -> CString        -- ^ The pattern to look for
+          -> CString        -- ^ The pattern to look for; It is typically
+                            -- matched against the user ids of a key.
           -> IO [Key]
 listKeys' Ctx {_ctx=ctxPtr} secret pat = do
     peek ctxPtr >>= \ctx ->
