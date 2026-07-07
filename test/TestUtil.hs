@@ -20,6 +20,9 @@ alicePubFpr = "EAACEB8A"
 bobPubFpr :: BS.ByteString
 bobPubFpr = "6C4FB8F2"
 
+realPersonPubFpr :: BS.ByteString
+realPersonPubFpr = "2DA4C89E28F515B4"
+
 -- Orphan instance here! Because this is only a test, orphans are probably OK.
 -- http://stackoverflow.com/a/3081367/350221
 instance Arbitrary BS.ByteString where
