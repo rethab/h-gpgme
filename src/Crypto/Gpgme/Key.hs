@@ -99,6 +99,8 @@ importKeyFromBytes :: Ctx -- ^ context to operate in
 importKeyFromBytes ctx key =
   importData ctx $ \dataPtr ->
     BS.useAsCString key $ \cKey -> do
+      -- gpgme must copy the buffer: the import in 'importData' runs after
+      -- useAsCString returns, at which point cKey has been freed
       let copyData = 1
       let keylen = fromIntegral (BS.length key)
       c'gpgme_data_new_from_mem dataPtr cKey keylen copyData

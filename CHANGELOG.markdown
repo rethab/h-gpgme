@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- feat: add importKeyFromBytes function: https://github.com/rethab/h-gpgme/pull/66
+
 ## 0.6.2.0
 
 ### New Features
