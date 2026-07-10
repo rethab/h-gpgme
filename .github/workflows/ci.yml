@@ -38,7 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     name: test ${{ matrix.resolver }}
     strategy:
-      # A broken compiler shouldn't hide the status of the others.
       fail-fast: false
       matrix:
         # Each resolver pins a distinct GHC, spanning the oldest still-reasonable
