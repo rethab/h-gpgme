@@ -1,6 +1,7 @@
 module Crypto.Gpgme.Key (
       getKey
     , importKeyFromFile
+    , importKeyFromBytes
     , listKeys
     , removeKey
     , searchKeys
@@ -85,11 +86,32 @@ getKey Ctx {_ctx=ctxPtr} fpr secret = do
 importKeyFromFile :: Ctx -- ^ context to operate in
                   -> FilePath -- ^ file path to read from
                   -> IO (Maybe GpgmeError)
-importKeyFromFile Ctx {_ctx=ctxPtr} fp = do
-  dataPtr <- newDataBuffer
-  ret <-
+importKeyFromFile ctx fp =
+  importData ctx $ \dataPtr ->
     BS.useAsCString (BSC8.pack fp) $ \cFp ->
       c'gpgme_data_new_from_file dataPtr cFp 1
+
+-- | Import a key from a 'BS.ByteString', this happens in two steps: populate a
+-- @gpgme_data_t@ with the contents of the buffer, import the @gpgme_data_t@
+importKeyFromBytes :: Ctx -- ^ context to operate in
+                   -> BS.ByteString -- ^ buffer to read the key from
+                   -> IO (Maybe GpgmeError)
+importKeyFromBytes ctx key =
+  importData ctx $ \dataPtr ->
+    BS.useAsCString key $ \cKey -> do
+      let copyData = 1
+      let keylen = fromIntegral (BS.length key)
+      c'gpgme_data_new_from_mem dataPtr cKey keylen copyData
+
+-- | Populate a fresh @gpgme_data_t@ using the given action and import it.
+-- The action is responsible for filling the buffer and returns the result
+-- of doing so.
+importData :: Ctx -- ^ context to operate in
+           -> (Ptr C'gpgme_data_t -> IO C'gpgme_error_t) -- ^ populate the buffer
+           -> IO (Maybe GpgmeError)
+importData Ctx {_ctx=ctxPtr} populate = do
+  dataPtr <- newDataBuffer
+  ret <- populate dataPtr
   mGpgErr <-
     case ret of
       x | x == noError -> do

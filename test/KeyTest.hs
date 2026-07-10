@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module KeyTest (tests) where
 
+import qualified Data.ByteString as BS
 import Data.Maybe
 import Data.List
 import Test.Tasty (TestTree)
@@ -29,6 +30,7 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "removeAliceKey" removeAliceKey
         , testCase "readFromFileWorks" readFromFileWorks
         , testCase "readFromFileDoesn'tExist" readFromFileDoesn'tExist
+        , testCase "readFromBytesWorks" readFromBytesWorks
         ]
 
 getAlicePubFromAlice :: Assertion
@@ -137,3 +139,16 @@ readFromFileDoesn'tExist = do
     withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
       mRet <- importKeyFromFile ctx "this-file-doesn't-exist"
       isJust mRet @? "shouldn't be able to read this file"
+
+readFromBytesWorks :: Assertion
+readFromBytesWorks = do
+    key <- BS.readFile "test/real-person/real-person.key"
+    tmpDir <- createTemporaryTestDir "readFromBytesWorks"
+    withCtx tmpDir "C" OpenPGP $ \ctx -> do
+      before <- getKey ctx realPersonPubFpr NoSecret
+      isNothing before @? "key shouldn't be present before import"
+      mRet <- importKeyFromBytes ctx key
+      mRet @?= Nothing
+      after <- getKey ctx realPersonPubFpr NoSecret
+      isJust after @? "key should be present after import"
+    removeDirectoryRecursive tmpDir
