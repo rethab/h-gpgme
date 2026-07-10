@@ -1,6 +1,8 @@
 name: CI
 
-# triggering on PRs means the workflows are also triggered on PRs from forks (only push doesn't)
+# `pull_request` (not `pull_request_target`) runs fork PRs from the untrusted
+# merge commit with a read-only token and no secrets, so external contributors
+# get a status check but can never write to the repo or read secrets.
 on:
   pull_request:
     branches:
@@ -9,50 +11,85 @@ on:
     branches:
       - master
 
-env:
-  STACK_YAML: stack.yaml
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: 'Set up HLint'
-        uses: haskell/actions/hlint-setup@v1
+        uses: haskell-actions/hlint-setup@v2
         with:
-          version: 3.2.7
+          version: '3.10'
 
       - name: 'Run HLint'
-        uses: haskell/actions/hlint-run@v1
+        uses: haskell-actions/hlint-run@v2
         with:
           fail-on: 'warning'
 
   test:
     runs-on: ubuntu-latest
-    name: test ghc ${{ matrix.ghc-version }}
+    name: test ${{ matrix.resolver }}
     strategy:
+      fail-fast: false
       matrix:
-        ghc-version: [8.8, 9.0, 9.2, latest]
+        # Each resolver pins a distinct GHC, spanning the oldest still-reasonable
+        # compiler up to the latest Stackage LTS:
+        #   lts-18.28 -> GHC 8.10.7   lts-22.44 -> GHC 9.6.6
+        #   lts-20.26 -> GHC 9.2.8    lts-23.28 -> GHC 9.8.4
+        #   lts-21.25 -> GHC 9.4.8    lts-24.49 -> GHC 9.10.3
+        resolver:
+          - lts-18.28
+          - lts-20.26
+          - lts-21.25
+          - lts-22.44
+          - lts-23.28
+          - lts-24.49
     steps:
       - run: sudo apt-get install -y libgpgme-dev
-      - uses: actions/checkout@v3
-      - uses: haskell/actions/setup@v1
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
         with:
-          ghc-version: ${{ matrix.ghc-version }}
           enable-stack: true
-      - run: stack test --test-arguments='--pattern=!/NoCi/'
+          stack-no-global: true
+
+      - name: Cache stack
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ matrix.resolver }}-${{ hashFiles('stack.yaml', 'h-gpgme.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-${{ matrix.resolver }}-
+
+      - run: stack --resolver ${{ matrix.resolver }} test --test-arguments='--pattern=!/NoCi/'
 
   docs:
     runs-on: ubuntu-latest
     steps:
       - run: sudo apt-get install -y libgpgme-dev
-      - uses: actions/checkout@v3
-      - uses: haskell/actions/setup@v1
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
         with:
-          # can't build docs on latest ghc, because https://github.com/haskell/cabal/issues/8104
-          ghc-version: 8.8
           enable-stack: true
-      - run: cabal update
-      - run: cabal build
-      - run: cabal v2-haddock --builddir="$(mktemp -d dist-docs.XXXXXX)" --haddock-for-hackage --enable-doc
+          stack-no-global: true
+
+      - name: Cache stack
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-docs-${{ hashFiles('stack.yaml', 'h-gpgme.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-docs-
+
+      - run: stack --resolver lts-24.49 haddock --no-haddock-deps
