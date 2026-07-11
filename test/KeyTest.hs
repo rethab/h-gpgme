@@ -3,7 +3,6 @@ module KeyTest (tests) where
 
 import qualified Data.ByteString as BS
 import Data.Maybe
-import Data.List
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
 import Test.HUnit
@@ -81,27 +80,29 @@ checkAlicePubUserIds :: Assertion
 checkAlicePubUserIds = do
     withCtx "test/alice" "C" OpenPGP $ \ctx ->
         do Just key <- getKey ctx alicePubFpr NoSecret
-           let uids = keyUserIds key
-           length uids @?= 1
-           let kuid = head uids
-               uid = keyuserId kuid
-           keyuserValidity kuid @?= ValidityUltimate
-           userId uid @?= "Alice (Test User A) <alice@email.com>"
-           userName uid @?= "Alice"
-           userEmail uid @?= "alice@email.com"
-           userComment uid @?= "Test User A"
+           case keyUserIds key of
+             [kuid] -> do
+               let uid = keyuserId kuid
+               keyuserValidity kuid @?= ValidityUltimate
+               userId uid @?= "Alice (Test User A) <alice@email.com>"
+               userName uid @?= "Alice"
+               userEmail uid @?= "alice@email.com"
+               userComment uid @?= "Test User A"
+             uids -> assertFailure $
+               "expected exactly one user id, got " ++ show (length uids)
 
 checkAlicePubSubkeys :: Assertion
 checkAlicePubSubkeys = do
     withCtx "test/alice" "C" OpenPGP $ \ctx ->
         do Just key <- getKey ctx alicePubFpr NoSecret
-           let subs = keySubKeys key
-           length subs @?= 2
-           let sub = head subs
-           subkeyAlgorithm sub @?= Rsa
-           subkeyLength sub @?= 2048
-           subkeyKeyId sub @?= "6B9809775CF91391"
-           subkeyFpr sub @?= "3F10159E56ECB494ED42EFA36B9809775CF91391"
+           case keySubKeys key of
+             [sub, _] -> do
+               subkeyAlgorithm sub @?= Rsa
+               subkeyLength sub @?= 2048
+               subkeyKeyId sub @?= "6B9809775CF91391"
+               subkeyFpr sub @?= "3F10159E56ECB494ED42EFA36B9809775CF91391"
+             subs -> assertFailure $
+               "expected exactly two subkeys, got " ++ show (length subs)
 
 removeAliceKey :: Assertion
 removeAliceKey = do
