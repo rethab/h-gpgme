@@ -82,6 +82,7 @@ test-suite tests
                      , Crypto.Gpgme.Types
                      , CryptoTest
                      , CtxTest
+                     , InternalTest
                      , KeyTest
                      , KeyGenTest
                      , TestUtil

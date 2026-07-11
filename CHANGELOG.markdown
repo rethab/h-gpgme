@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- fix: segfault in verify, verifyDetached and verifyPlain when the verify operation fails before gpgme produces a result (e.g. invalid homedir), as gpgme_op_verify_result returns NULL in that case (https://stackoverflow.com/questions/48908274)
+- fix: infinite recursion in collectFprs when encrypt or sign reports invalid keys
+- fix: segfault in newCtx when the gpg engine is not installed and its version is NULL
+
 ## 0.6.3.0
 
 ### New Features

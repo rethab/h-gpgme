@@ -442,10 +442,12 @@ verifyInternal ver_op Ctx {_ctx=ctxPtr} sig dat = do
     -- verify
     (errcode, res) <- ver_op ctx sigBuf datBuf
 
-    sigs <- collectSignatures' ctx
-    let res' = if errcode /= noError
-                then Left  (GpgmeError errcode)
-                else Right (sigs, res)
+    -- the result of gpgme_op_verify_result is only valid
+    -- if the operation finished successfully
+    res' <- if errcode /= noError
+                then return (Left (GpgmeError errcode))
+                else do sigs <- collectSignatures' ctx
+                        return (Right (sigs, res))
 
     free sigBufPtr
     free datBufPtr
