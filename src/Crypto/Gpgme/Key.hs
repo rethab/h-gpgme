@@ -5,6 +5,11 @@ module Crypto.Gpgme.Key (
     , listKeys
     , removeKey
     , searchKeys
+      -- * Exporting keys
+    , exportKey
+    , exportSecretKey
+    , exportKeys
+    , ExportMode (..)
       -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)
@@ -19,6 +24,7 @@ module Crypto.Gpgme.Key (
     ) where
 
 import Bindings.Gpgme
+import Control.Monad (when)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC8
 import Data.Time.Clock
@@ -112,7 +118,11 @@ importData :: Ctx -- ^ context to operate in
            -> (Ptr C'gpgme_data_t -> IO C'gpgme_error_t) -- ^ populate the buffer
            -> IO (Maybe GpgmeError)
 importData Ctx {_ctx=ctxPtr} populate = do
-  dataPtr <- newDataBuffer
+  -- the populate action allocates the data object itself, so it only
+  -- needs an empty cell; it is initialized to NULL because gpgme
+  -- leaves it untouched if populating fails
+  dataPtr <- malloc
+  poke dataPtr nullData
   ret <- populate dataPtr
   mGpgErr <-
     case ret of
@@ -123,10 +133,64 @@ importData Ctx {_ctx=ctxPtr} populate = do
           c'gpgme_op_import ctx dat
         pure $ if retIn == noError
           then Nothing
-          else Just $ GpgmeError ret
+          else Just $ GpgmeError retIn
       err -> pure $ Just $ GpgmeError err
+  dat <- peek dataPtr
+  when (dat /= nullData) $ c'gpgme_data_release dat
   free dataPtr
   pure mGpgErr
+  where
+    -- gpgme_data_t is bound as an integral type, so NULL is 0
+    nullData = 0 :: C'gpgme_data_t
+
+-- | Export the public key with the given @fingerprint@ from the
+--   @context@. Returns an empty 'BS.ByteString' if no key with
+--   this 'Fpr' exists.
+exportKey :: Ctx -- ^ context to operate in
+          -> Fpr -- ^ fingerprint of the key to export
+          -> IO (Either GpgmeError BS.ByteString)
+exportKey ctx fpr = exportKeys ctx [] [fpr]
+
+-- | Export the secret key with the given @fingerprint@ from the
+--   @context@.
+--
+--   Exporting a protected secret key requires its passphrase, which
+--   may be supplied through @setPassphraseCallback@.
+exportSecretKey :: Ctx -- ^ context to operate in
+                -> Fpr -- ^ fingerprint of the key to export
+                -> IO (Either GpgmeError BS.ByteString)
+exportSecretKey ctx fpr = exportKeys ctx [ExportSecret] [fpr]
+
+-- | Export all keys matching the given @fingerprints@ from the
+--   @context@, or all keys if no fingerprint is given.
+--
+--   The keys are returned in armored format if armor has been
+--   enabled on the @context@ (see @setArmor@) and in binary
+--   format otherwise.
+exportKeys :: Ctx          -- ^ context to operate in
+           -> [ExportMode] -- ^ modes for the export
+           -> [Fpr]        -- ^ fingerprints of the keys to export,
+                           --   or empty to export all keys
+           -> IO (Either GpgmeError BS.ByteString)
+exportKeys Ctx {_ctx=ctxPtr} modes fprs = do
+    dataPtr <- newDataBuffer
+    dat <- peek dataPtr
+    ret <- withMany BS.useAsCString fprs $ \cFprs ->
+        withArray0 nullPtr cFprs $ \pats -> do
+            ctx <- peek ctxPtr
+            c'gpgme_op_export_ext ctx pats cMode dat
+    result <- if ret == noError
+        then do
+            -- collectResult is lazy: force the copy while the buffer
+            -- it reads from is still alive
+            let key = collectResult dat
+            key `seq` return (Right key)
+        else return (Left (GpgmeError ret))
+    c'gpgme_data_release dat
+    free dataPtr
+    return result
+  where
+    cMode = foldl (\memo -> (memo .|.) . fromExportMode) 0 modes
 
 -- | Removes the 'Key' from @context@
 removeKey :: Ctx                    -- ^ context to operate in

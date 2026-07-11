@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-module KeyTest (tests) where
+module KeyTest (tests, cbTests) where
 
 import qualified Data.ByteString as BS
 import Data.Maybe
-import Test.Tasty (TestTree)
+import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
@@ -32,7 +32,21 @@ tests = [ testCase "getAlicePubFromAlice" getAlicePubFromAlice
         , testCase "readFromFileWorks" readFromFileWorks
         , testCase "readFromFileDoesn'tExist" readFromFileDoesn'tExist
         , testCase "readFromBytesWorks" readFromBytesWorks
+        , testCase "exportAlicePubArmored" exportAlicePubArmored
+        , testCase "exportImportRoundtrip" exportImportRoundtrip
+        , testCase "exportInexistentIsEmpty" exportInexistentIsEmpty
+        , testCase "exportAllKeys" exportAllKeys
+        , testCase "exportMinimal" exportMinimal
         ]
+
+cbTests :: IO TestTree
+cbTests = do
+    supported <- withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        return $ isPassphraseCbSupported ctx
+    if supported
+       then return $ testGroup "key-passphrase-cb"
+                [ testCase "exportAliceSecretArmored" exportAliceSecretArmored ]
+       else return $ testGroup "key-passphrase-cb" []
 
 getAlicePubFromAlice :: Assertion
 getAlicePubFromAlice = do
@@ -144,6 +158,58 @@ readFromFileDoesn'tExist = do
     withCtx "test/real-person" "C" OpenPGP $ \ctx -> do
       mRet <- importKeyFromFile ctx "this-file-doesn't-exist"
       isJust mRet @? "shouldn't be able to read this file"
+
+exportAlicePubArmored :: Assertion
+exportAlicePubArmored =
+    withCtx "test/alice" "C" OpenPGP $ \ctx -> do
+        setArmor True ctx
+        key <- fromRight <$> exportKey ctx alicePubFpr
+        ("-----BEGIN PGP PUBLIC KEY BLOCK-----" `BS.isPrefixOf` key)
+            @? "exported key must be armored"
+
+exportImportRoundtrip :: Assertion
+exportImportRoundtrip = do
+    key <- withCtx "test/alice" "C" OpenPGP $ \ctx ->
+        fromRight <$> exportKey ctx alicePubFpr
+    tmpDir <- createTemporaryTestDir "exportImportRoundtrip"
+    withCtx tmpDir "C" OpenPGP $ \ctx -> do
+        mErr <- importKeyFromBytes ctx key
+        mErr @?= Nothing
+        imported <- getKey ctx alicePubFpr NoSecret
+        isJust imported @? "imported key should be present"
+    removeDirectoryRecursive tmpDir
+
+exportInexistentIsEmpty :: Assertion
+exportInexistentIsEmpty =
+    withCtx "test/alice" "C" OpenPGP $ \ctx -> do
+        key <- fromRight <$> exportKey ctx "ABCDEF"
+        key @?= BS.empty
+
+exportAllKeys :: Assertion
+exportAllKeys =
+    withCtx "test/alice" "C" OpenPGP $ \ctx -> do
+        single <- fromRight <$> exportKeys ctx [] [alicePubFpr]
+        all' <- fromRight <$> exportKeys ctx [] []
+        (BS.length all' > BS.length single)
+            @? "exporting all keys must yield more than a single key"
+
+exportMinimal :: Assertion
+exportMinimal =
+    withCtx "test/bob" "C" OpenPGP $ \ctx -> do
+        full <- fromRight <$> exportKeys ctx [] [alicePubFpr]
+        minimal <- fromRight <$> exportKeys ctx [ExportMinimal] [alicePubFpr]
+        not (BS.null minimal) @? "minimal export must not be empty"
+        (BS.length minimal <= BS.length full)
+            @? "minimal export must not be larger than the full export"
+
+exportAliceSecretArmored :: Assertion
+exportAliceSecretArmored =
+    withCtx "test/alice" "C" OpenPGP $ \ctx -> do
+        setPassphraseCallback ctx (Just (\_ _ _ -> return (Just "alice123")))
+        setArmor True ctx
+        key <- fromRight <$> exportSecretKey ctx alicePubFpr
+        ("-----BEGIN PGP PRIVATE KEY BLOCK-----" `BS.isPrefixOf` key)
+            @? "exported secret key must be armored"
 
 readFromBytesWorks :: Assertion
 readFromBytesWorks = do

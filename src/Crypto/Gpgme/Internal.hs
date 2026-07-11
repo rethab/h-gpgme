@@ -94,6 +94,17 @@ fromKeyListingMode KeyListingSigNotations = c'GPGME_KEYLIST_MODE_SIG_NOTATIONS
 fromKeyListingMode KeyListingValidate     = c'GPGME_KEYLIST_MODE_VALIDATE
 
 
+-- The GPGME_EXPORT_MODE_* values are replicated from gpgme.h:
+-- bindings-gpgme 0.1 does not bind these constants and 0.2 only
+-- binds the ones known to the gpgme version it was built against.
+fromExportMode :: ExportMode -> CUInt
+fromExportMode ExportMinimal      = 4   -- GPGME_EXPORT_MODE_MINIMAL
+fromExportMode ExportSecret       = 16  -- GPGME_EXPORT_MODE_SECRET
+fromExportMode ExportRaw          = 32  -- GPGME_EXPORT_MODE_RAW
+fromExportMode ExportPKCS12       = 64  -- GPGME_EXPORT_MODE_PKCS12
+fromExportMode ExportSSH          = 256 -- GPGME_EXPORT_MODE_SSH
+fromExportMode ExportSecretSubkey = 512 -- GPGME_EXPORT_MODE_SECRET_SUBKEY
+
 fromProtocol :: (Num a) => Protocol -> a
 fromProtocol CMS     =  c'GPGME_PROTOCOL_CMS
 fromProtocol GPGCONF =  c'GPGME_PROTOCOL_GPGCONF

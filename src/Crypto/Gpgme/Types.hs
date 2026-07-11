@@ -34,6 +34,17 @@ data KeyListingMode
     | KeyListingSigNotations
     | KeyListingValidate
 
+-- | Modes for exporting keys. Multiple modes can be combined,
+--   e.g. @[ExportSecret, ExportPKCS12]@.
+data ExportMode
+    = ExportMinimal       -- ^ Strip all signatures except the most recent self-signatures
+    | ExportSecret        -- ^ Export the secret keys instead of the public keys
+    | ExportRaw           -- ^ Only with 'ExportSecret' and 'CMS': export in raw format
+    | ExportPKCS12        -- ^ Only with 'ExportSecret' and 'CMS': export in PKCS#12 format
+    | ExportSSH           -- ^ Export the public key in SSH format
+    | ExportSecretSubkey  -- ^ Export the secret subkeys instead of the public keys
+    deriving (Show, Eq, Ord)
+
 -- | Modes for signing with GPG
 data SignMode = Normal | Detach | Clear deriving Show
 
