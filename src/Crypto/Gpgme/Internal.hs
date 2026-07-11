@@ -13,9 +13,9 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import Crypto.Gpgme.Types
 
--- The struct is read field by field via the p' accessors: peeking a whole
--- C'_gpgme_invalid_key diverges because its Storable instance recursively
--- peeks the mistyped @next@ field.
+-- Fields are read via the p' accessors: peeking a whole C'_gpgme_invalid_key
+-- diverges because its Storable instance recursively peeks the mistyped
+-- @next@ field.
 collectFprs :: C'gpgme_invalid_key_t -> [InvalidKey]
 collectFprs = unsafePerformIO . go
     where go :: C'gpgme_invalid_key_t -> IO [InvalidKey]
@@ -66,9 +66,7 @@ collectSignatures ctx = unsafePerformIO $ collectSignatures' ctx
 collectSignatures' :: C'gpgme_ctx_t -> IO VerificationResult
 collectSignatures' ctx = do
     verify_res <- c'gpgme_op_verify_result ctx
-    -- gpgme_op_verify_result returns NULL if the last operation on the
-    -- context was not a successful verify (e.g. it failed to even start
-    -- because of a bad homedir or missing engine)
+    -- NULL unless the last operation on the context was a successful verify
     if verify_res == nullPtr
         then return []
         else go =<< peek (p'_gpgme_op_verify_result'signatures verify_res)

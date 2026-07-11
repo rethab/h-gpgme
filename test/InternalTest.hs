@@ -18,8 +18,8 @@ tests =
     , testCase "verifyGarbageDoesNotCrash" verifyGarbageDoesNotCrash
     ]
 
--- gpgme_op_verify_result returns NULL when no successful verify ran on
--- the context; this used to segfault (see stackoverflow question 48908274)
+-- gpgme_op_verify_result returns NULL when no successful verify ran on the
+-- context, which used to segfault (stackoverflow.com/questions/48908274)
 collectSignaturesWithoutVerify :: Assertion
 collectSignaturesWithoutVerify = do
     _ <- c'gpgme_check_version nullPtr

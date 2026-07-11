@@ -31,8 +31,7 @@ newCtx homedir localeStr protocol =
 
        ctx <- peek ctxPtr
 
-       -- find engine version; the version field is NULL when the
-       -- engine binary is not installed or its version is unknown
+       -- the version field is NULL when the engine binary is not installed
        engInfoPtr <- c'gpgme_ctx_get_engine_info ctx
        engVersion <- if engInfoPtr == nullPtr
                         then return ""
