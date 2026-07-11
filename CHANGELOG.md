@@ -1,12 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.6.3.1
 
 ### Bug fixes
 
-- fix: segfault in verify, verifyDetached and verifyPlain when the verify operation fails before gpgme produces a result (e.g. invalid homedir), as gpgme_op_verify_result returns NULL in that case (https://stackoverflow.com/questions/48908274)
-- fix: infinite recursion in collectFprs when encrypt or sign reports invalid keys
-- fix: segfault in newCtx when the gpg engine is not installed and its version is NULL
+- fix: segfault in verify, verifyDetached and verifyPlain when the verify operation fails before gpgme produces a result (e.g. invalid homedir), as gpgme_op_verify_result returns NULL in that case (https://stackoverflow.com/questions/48908274): https://github.com/rethab/h-gpgme/pull/72
+- fix: infinite recursion in collectFprs when encrypt or sign reports invalid keys: https://github.com/rethab/h-gpgme/pull/72
+- fix: segfault in newCtx when the gpg engine is not installed and its version is NULL: https://github.com/rethab/h-gpgme/pull/72
+
+### Maintenance
+
+- chore: drop the docker-compose test runner, the shell script wrappers and stack.yaml; CI now builds with cabal against the declared bounds, plus a --prefer-oldest job to keep the lower bounds honest: https://github.com/rethab/h-gpgme/pull/71
+- chore(test): wire setPassphraseCallback into the tests that unlock a secret key, which unmarks most NoCi tests, and move the alice/bob keyrings to keybox format so gpg stops migrating them on every run: https://github.com/rethab/h-gpgme/pull/71
+- docs: document the actual feature surface in the README: https://github.com/rethab/h-gpgme/pull/71
 
 ## 0.6.3.0
 

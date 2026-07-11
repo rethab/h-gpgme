@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                h-gpgme
-version:             0.6.3.0
+version:             0.6.3.1
 synopsis:            High Level Binding for GnuPG Made Easy (gpgme)
 description:         High Level Binding for GnuPG Made Easy (gpgme): A Haskell API for the gpgme C library.
 license:             MIT
