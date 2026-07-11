@@ -57,6 +57,11 @@ module Crypto.Gpgme (
     , RemoveKeyFlags(..)
 
     , searchKeys
+    -- * Exporting keys
+    , exportKey
+    , exportSecretKey
+    , exportKeys
+    , ExportMode(..)
     -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)

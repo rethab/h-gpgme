@@ -5,6 +5,11 @@ module Crypto.Gpgme.Key (
     , listKeys
     , removeKey
     , searchKeys
+      -- * Exporting keys
+    , exportKey
+    , exportSecretKey
+    , exportKeys
+    , ExportMode (..)
       -- * Information about keys
     , Validity (..)
     , PubKeyAlgo (..)
@@ -127,6 +132,49 @@ importData Ctx {_ctx=ctxPtr} populate = do
       err -> pure $ Just $ GpgmeError err
   free dataPtr
   pure mGpgErr
+
+-- | Export the public key with the given @fingerprint@ from the
+--   @context@. Returns an empty 'BS.ByteString' if no key with
+--   this 'Fpr' exists.
+exportKey :: Ctx -- ^ context to operate in
+          -> Fpr -- ^ fingerprint of the key to export
+          -> IO (Either GpgmeError BS.ByteString)
+exportKey ctx fpr = exportKeys ctx [] [fpr]
+
+-- | Export the secret key with the given @fingerprint@ from the
+--   @context@.
+--
+--   Exporting a protected secret key requires its passphrase, which
+--   may be supplied through @setPassphraseCallback@.
+exportSecretKey :: Ctx -- ^ context to operate in
+                -> Fpr -- ^ fingerprint of the key to export
+                -> IO (Either GpgmeError BS.ByteString)
+exportSecretKey ctx fpr = exportKeys ctx [ExportSecret] [fpr]
+
+-- | Export all keys matching the given @fingerprints@ from the
+--   @context@, or all keys if no fingerprint is given.
+--
+--   The keys are returned in armored format if armor has been
+--   enabled on the @context@ (see @setArmor@) and in binary
+--   format otherwise.
+exportKeys :: Ctx          -- ^ context to operate in
+           -> [ExportMode] -- ^ modes for the export
+           -> [Fpr]        -- ^ fingerprints of the keys to export,
+                           --   or empty to export all keys
+           -> IO (Either GpgmeError BS.ByteString)
+exportKeys Ctx {_ctx=ctxPtr} modes fprs = do
+    dataPtr <- newDataBuffer
+    dat <- peek dataPtr
+    ret <- withMany BS.useAsCString fprs $ \cFprs ->
+        withArray0 nullPtr cFprs $ \pats -> do
+            ctx <- peek ctxPtr
+            c'gpgme_op_export_ext ctx pats cMode dat
+    free dataPtr
+    return $ if ret == noError
+        then Right (collectResult dat)
+        else Left (GpgmeError ret)
+  where
+    cMode = foldl (\memo -> (memo .|.) . fromExportMode) 0 modes
 
 -- | Removes the 'Key' from @context@
 removeKey :: Ctx                    -- ^ context to operate in

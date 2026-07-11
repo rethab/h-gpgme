@@ -5,6 +5,7 @@
 ### New Features
 
 - feat: add importKeyFromBytes function: https://github.com/rethab/h-gpgme/pull/66
+- feat: add exportKey, exportSecretKey and exportKeys functions: https://github.com/rethab/h-gpgme/pull/70
 - feat: support gpgme 2.x by allowing bindings-gpgme 0.2: https://github.com/rethab/h-gpgme/pull/69
 
 ### Bug fixes
