@@ -1,7 +1,1 @@
 ignore-project: False
-package bindings-gpgme
-  extra-include-dirs: /opt/homebrew/opt/gpgme/include /opt/homebrew/opt/libassuan/include /opt/homebrew/opt/libgpg-error/include
-  extra-lib-dirs: /opt/homebrew/opt/gpgme/lib /opt/homebrew/opt/libassuan/lib /opt/homebrew/opt/libgpg-error/lib
-package h-gpgme
-  extra-include-dirs: /opt/homebrew/opt/gpgme/include
-  extra-lib-dirs: /opt/homebrew/opt/gpgme/lib
