@@ -8,12 +8,14 @@ import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
 import Test.HUnit
 
+import Control.Monad      (filterM)
 import System.FilePath    ((</>))
 import System.Directory   ( removeDirectoryRecursive
                           , createDirectory
                           , listDirectory
                           , copyFile
                           )
+import System.Posix.Files (getFileStatus, isRegularFile)
 
 import Crypto.Gpgme
 import TestUtil
@@ -108,11 +110,13 @@ removeAliceKey = do
   -- Copy alice's key into temporary directory so we can safely remove it
   let aliceTmpDir = tmpDir </> "alice"
   createDirectory aliceTmpDir
+  -- Where GnuPG has no /run/user to fall back on (macOS, some containers) it
+  -- puts its agent sockets straight into the homedir, so skip anything that is
+  -- not a regular file rather than listing socket names one by one.
   aliceFiles <- listDirectory "test/alice"
+              >>= filterM (fmap isRegularFile . getFileStatus . ("test/alice" </>))
   mapM_ (\f -> copyFile ("test/alice" </> f) (tmpDir </> "alice" </> f))
-    $ filter (\f -> not ("S.gpg-agent" `isPrefixOf` f)
-                 && f /= "private-keys-v1.d"
-                 && f /= ".gpg-v21-migrated"
+    $ filter (\f -> f /= ".gpg-v21-migrated"
                  && f /= "randomSeed"
              ) aliceFiles
 
