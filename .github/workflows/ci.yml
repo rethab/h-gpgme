@@ -174,10 +174,19 @@ jobs:
             args+=(--constraint='bindings-gpgme >= 0.2')
           fi
 
-          printf 'packages: .\n' > ci.project
+          # bindings-gpgme is the package that includes gpgme.h, and it is a
+          # dependency rather than a project member, so the paths to the gpgme
+          # we just built have to reach it through a package stanza --
+          # --extra-include-dirs on the command line only ever reaches '.'.
+          cat > ci.project <<PROJECT
+          packages: .
+
+          package bindings-gpgme
+            extra-include-dirs: $GPGME_PREFIX/include
+            extra-lib-dirs: $GPGME_PREFIX/lib
+          PROJECT
+
           cabal test --project-file=ci.project "${args[@]}" \
-            --extra-include-dirs="$GPGME_PREFIX/include" \
-            --extra-lib-dirs="$GPGME_PREFIX/lib" \
             --test-show-details=direct \
             --test-options='--pattern=!/NoCi/'
 
