@@ -6,6 +6,15 @@
 
 - feat: add importKeyFromBytes function: https://github.com/rethab/h-gpgme/pull/66
 
+### Bug fixes
+
+- docs: fix reversed doc comments on IncludeSecret: https://github.com/rethab/h-gpgme/pull/68
+
+### Maintenance
+
+- chore(ci): modernize CI with a real multi-GHC matrix, latest actions and hardened permissions: https://github.com/rethab/h-gpgme/pull/67
+- chore(ci): release to Hackage from a version tag: https://github.com/rethab/h-gpgme/pull/69
+
 ## 0.6.2.0
 
 ### New Features
