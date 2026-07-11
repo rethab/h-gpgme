@@ -52,6 +52,7 @@ jobs:
           - '9.6.6'
           - '9.8.4'
           - '9.10.3'
+          - '9.12.4'
     steps:
       - run: sudo apt-get install -y libgpgme-dev
       - uses: actions/checkout@v7

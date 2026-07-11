@@ -3,7 +3,7 @@
 ## 1. PR: bump the version
 
 - `version:` in `h-gpgme.cabal`, PVP
-- move the `## Unreleased` section of `CHANGELOG.markdown` under the new version
+- move the `## Unreleased` section of `CHANGELOG.md` under the new version
 
 CI's **publishable** job runs `cabal check` + `cabal sdist` on every PR. Red =
 not releasable, and it blocks the merge. Nothing to run locally.

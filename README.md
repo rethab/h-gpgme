@@ -98,4 +98,4 @@ that cannot run unattended are marked `NoCi` and skipped in CI with
 `--test-options='--pattern=!/NoCi/'`. [test/README.md](test/README.md) describes
 the test keyrings, and [RELEASE.md](RELEASE.md) how a release is cut.
 
-[Changelog](CHANGELOG.markdown) · [License](LICENSE) (MIT)
+[Changelog](CHANGELOG.md) · [License](LICENSE) (MIT)

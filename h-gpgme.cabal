@@ -18,8 +18,9 @@ tested-with:         GHC == 8.10.7
                    , GHC == 9.6.6
                    , GHC == 9.8.4
                    , GHC == 9.10.3
-extra-doc-files:     CHANGELOG.markdown
-                   , README.markdown
+                   , GHC == 9.12.4
+extra-doc-files:     CHANGELOG.md
+                   , README.md
 
 source-repository head
   type:     git
