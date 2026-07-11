@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module CryptoTest (tests, cbTests) where
+module CryptoTest (tests) where
 
 import System.IO
 import System.IO.Temp
@@ -23,42 +23,49 @@ import Crypto.Gpgme
 import Crypto.Gpgme.Types ( GpgmeError (GpgmeError) )
 import TestUtil
 
-tests :: TestTree
-tests = testGroup "crypto"
-    [ testProperty "bobEncryptForAliceDecryptPromptNoCi"
-                   $ bobEncryptForAliceDecrypt False
-    , testProperty "bobEncryptSignForAliceDecryptVerifyPromptNoCi"
-                   $ bobEncryptSignForAliceDecryptVerify False
-
-    , testProperty "bobEncryptForAliceDecryptShortPromptNoCi"
-                   bobEncryptForAliceDecryptShort
-    , testProperty "bobEncryptSignForAliceDecryptVerifyShortPromptNoCi"
-                   bobEncryptSignForAliceDecryptVerifyShort
-
-    , testCase "decryptGarbage" decryptGarbage
-    , testCase "encryptWrongKey" encryptWrongKey
-    , testCase "bobEncryptSymmetricallyPromptNoCi" bobEncryptSymmetrically
-    , testCase "bobDetachSignAndVerifySpecifyKeyPromptNoCi" bobDetachSignAndVerifySpecifyKeyPrompt
-    , testCase "bobClearSignAndVerifySpecifyKeyPromptNoCi" bobClearSignAndVerifySpecifyKeyPrompt
-    , testCase "bobClearSignAndVerifyDefaultKeyPromptNoCi" bobClearSignAndVerifyDefaultKeyPrompt
-    , testCase "bobNormalSignAndVerifySpecifyKeyPromptNoCi" bobNormalSignAndVerifySpecifyKeyPrompt
-    , testCase "bobNormalSignAndVerifyDefaultKeyPromptNoCi" bobNormalSignAndVerifyDefaultKeyPrompt
-    , testCase "encryptFileNoCi" encryptFile
-    , testCase "encryptStreamNoCi" encryptStream
-    ]
-
-cbTests :: IO TestTree
-cbTests = do
-    supported <- withCtx "test/bob" "C" OpenPGP $ \ctx ->
+-- | Anything that unlocks Alice's or Bob's secret key needs their passphrase.
+-- The tests supply it through a passphrase callback, which puts gpgme into
+-- loopback pinentry mode, so no test asks a human for anything.
+--
+-- The exception is 'bobEncryptForAliceDecrypt' @False@: it is deliberately
+-- callback-free, to cover the path where the passphrase comes from the
+-- gpg-agent's own pinentry. It carries a @NoCi@ marker because it wants a
+-- human.
+tests :: IO TestTree
+tests = do
+    cbSupported <- withCtx "test/bob" "C" OpenPGP $ \ctx ->
         return $ isPassphraseCbSupported ctx
-    if supported
-       then return $ testGroup "passphrase-cb"
-                [ testProperty "bobEncryptForAliceDecrypt"
-                               $ bobEncryptForAliceDecrypt True
-                , testProperty "bobEncryptSignForAliceDecryptVerifyWithPassphraseCbPromptNoCi"
-                               $ bobEncryptSignForAliceDecryptVerify True
-                ]
-       else return $ testGroup "passphrase-cb" []
+    return $ testGroup "crypto" $
+        [ testProperty "carolEncryptForCarolDecryptShort"
+                       carolEncryptForCarolDecryptShort
+        , testProperty "carolEncryptSignForCarolDecryptVerifyShort"
+                       carolEncryptSignForCarolDecryptVerifyShort
+
+        , testCase "decryptGarbage" decryptGarbage
+        , testCase "encryptWrongKey" encryptWrongKey
+
+        , testProperty "bobEncryptForAliceDecryptPromptNoCi"
+                       $ bobEncryptForAliceDecrypt False
+        ] ++ if cbSupported then passphraseCbTests else []
+
+-- | Tests that can only run where gpgme supports passphrase callbacks, which
+-- rules out the gpg 1.x and 2.0 engines (see 'isPassphraseCbSupported').
+passphraseCbTests :: [TestTree]
+passphraseCbTests =
+    [ testProperty "bobEncryptForAliceDecrypt"
+                   $ bobEncryptForAliceDecrypt True
+    , testProperty "bobEncryptSignForAliceDecryptVerify"
+                   $ bobEncryptSignForAliceDecryptVerify True
+
+    , testCase "bobEncryptSymmetricallyNoCi" bobEncryptSymmetrically
+    , testCase "bobDetachSignAndVerifySpecifyKey" bobDetachSignAndVerifySpecifyKey
+    , testCase "bobClearSignAndVerifySpecifyKey" bobClearSignAndVerifySpecifyKey
+    , testCase "bobClearSignAndVerifyDefaultKey" bobClearSignAndVerifyDefaultKey
+    , testCase "bobNormalSignAndVerifySpecifyKey" bobNormalSignAndVerifySpecifyKey
+    , testCase "bobNormalSignAndVerifyDefaultKey" bobNormalSignAndVerifyDefaultKey
+    , testCase "encryptFile" encryptFile
+    , testCase "encryptStream" encryptStream
+    ]
 
 hush :: Monad m => m (Either e a) -> MaybeT m a
 hush = MaybeT . fmap (either (const Nothing) Just)
@@ -75,29 +82,27 @@ bobEncryptForAliceDecrypt passphrCb plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
+            do
                Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
                    aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
                    hush $ encrypt bCtx [aPubKey] NoFlag plain
 
-               -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
                    when passphrCb $ withPassphraseCb "alice123" aCtx
                    decrypt aCtx enc
 
                return $ fromRight dec
 
-bobEncryptForAliceDecryptShort :: Plain -> Property
-bobEncryptForAliceDecryptShort plain =
+carolEncryptForCarolDecryptShort :: Plain -> Property
+carolEncryptForCarolDecryptShort plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
-               enc <- encrypt' "test/bob" alicePubFpr plain
+            do
+               enc <- encrypt' "test/carol" carolPubFpr plain
 
-               -- decrypt
-               dec <- decrypt' "test/alice" (fromRight enc)
+               dec <- decrypt' "test/carol" (fromRight enc)
 
                return $ fromRight dec
 
@@ -107,29 +112,31 @@ bobEncryptSignForAliceDecryptVerify passphrCb plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
-               Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
-                   aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
-                   hush $ encryptSign bCtx [aPubKey] NoFlag plain
+            do
+               Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> do
+                   -- signing unlocks Bob's secret key, so this side needs the
+                   -- passphrase as well
+                   when passphrCb $ withPassphraseCb "bob123" bCtx
+                   runMaybeT $ do
+                       aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
+                       hush $ encryptSign bCtx [aPubKey] NoFlag plain
 
-               -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
                    when passphrCb $ withPassphraseCb "alice123" aCtx
                    decryptVerify aCtx enc
 
                return $ fromRight dec
 
-bobEncryptSignForAliceDecryptVerifyShort :: Plain -> Property
-bobEncryptSignForAliceDecryptVerifyShort plain =
+carolEncryptSignForCarolDecryptVerifyShort :: Plain -> Property
+carolEncryptSignForCarolDecryptVerifyShort plain =
     not (BS.null plain) ==> monadicIO $ do
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
-               enc <- encryptSign' "test/bob" alicePubFpr plain
+            do
+               enc <- encryptSign' "test/carol" carolPubFpr plain
 
-               -- decrypt
-               dec <- decryptVerify' "test/alice" (fromRight enc)
+               dec <- decryptVerify' "test/carol" (fromRight enc)
 
                return $ fromRight dec
 
@@ -149,54 +156,63 @@ decryptGarbage = do
 bobEncryptSymmetrically :: Assertion
 bobEncryptSymmetrically = do
 
-        -- encrypt
         cipher <- fmap fromRight $
-                    withCtx "test/bob" "C" OpenPGP $ \ctx ->
+                    withCtx "test/bob" "C" OpenPGP $ \ctx -> do
+                        withPassphraseCb symmetricPassphrase ctx
                         encrypt ctx [] NoFlag "plaintext"
         assertBool "must not be plain" (cipher /= "plaintext")
 
-        -- decrypt
         plain <- fmap fromRight $
-                    withCtx "test/alice" "C" OpenPGP $ \ctx ->
+                    withCtx "test/alice" "C" OpenPGP $ \ctx -> do
+                        withPassphraseCb symmetricPassphrase ctx
                         decrypt ctx cipher
 
         assertEqual "should decrypt to same" "plaintext" plain
+  where
+    -- symmetric encryption is not tied to a key, so any passphrase will do as
+    -- long as both sides agree on it
+    symmetricPassphrase = "symmetric123"
 
-bobDetachSignAndVerifySpecifyKeyPrompt :: Assertion
-bobDetachSignAndVerifySpecifyKeyPrompt = do
+bobDetachSignAndVerifySpecifyKey :: Assertion
+bobDetachSignAndVerifySpecifyKey = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
     key <- getKey ctx bobPubFpr NoSecret
     let msgToSign = "Clear text message from bob!!"
     resSign <-sign ctx [fromJust key] Detach msgToSign
     verifyDetached ctx (fromRight resSign) msgToSign
   assertBool "Could not verify bob's signature was correct" $ isVerifyDetachValid resVerify
 
-bobClearSignAndVerifySpecifyKeyPrompt :: Assertion
-bobClearSignAndVerifySpecifyKeyPrompt = do
+bobClearSignAndVerifySpecifyKey :: Assertion
+bobClearSignAndVerifySpecifyKey = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
     key <- getKey ctx bobPubFpr NoSecret
     resSign <- sign ctx [fromJust key] Clear "Clear text message from bob specifying signing key"
     verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
-bobClearSignAndVerifyDefaultKeyPrompt :: Assertion
-bobClearSignAndVerifyDefaultKeyPrompt = do
+bobClearSignAndVerifyDefaultKey :: Assertion
+bobClearSignAndVerifyDefaultKey = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
     resSign <- sign ctx [] Clear "Clear text message from bob with default key"
     verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
-bobNormalSignAndVerifySpecifyKeyPrompt :: Assertion
-bobNormalSignAndVerifySpecifyKeyPrompt = do
+bobNormalSignAndVerifySpecifyKey :: Assertion
+bobNormalSignAndVerifySpecifyKey = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
     key <- getKey ctx bobPubFpr NoSecret
     resSign <- sign ctx [fromJust key] Normal "Normal text message from bob specifying signing key"
     verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
-bobNormalSignAndVerifyDefaultKeyPrompt :: Assertion
-bobNormalSignAndVerifyDefaultKeyPrompt = do
+bobNormalSignAndVerifyDefaultKey :: Assertion
+bobNormalSignAndVerifyDefaultKey = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
+    withPassphraseCb "bob123" ctx
     resSign <- sign ctx [] Normal "Normal text message from bob with default key"
     verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
@@ -212,10 +228,8 @@ encryptFile =
 
       key <- getKey ctx bobPubFpr NoSecret
 
-      -- Add plaintext content
       writeFile pp "Plaintext contents. 1234go!"
 
-      -- Encrypt plaintext
       resEnc <- encryptFd ctx [fromJust key] NoFlag plainFd cipherFd
       if resEnc == Right ()
       then return ()
@@ -225,13 +239,11 @@ encryptFile =
       cipherHandle' <- openFile cp ReadWriteMode
       cipherFd' <- handleToFd cipherHandle'
 
-      -- Decrypt ciphertext
       resDec <- decryptFd ctx cipherFd' decryptedFd
       if resDec == Right ()
       then return ()
       else assertFailure $ show resDec
 
-      -- Compare plaintext and decrypted text
       plaintext <- readFile pp
       decryptedtext <- readFile dp
       plaintext @=? decryptedtext
@@ -246,42 +258,33 @@ encryptStream =
       cipherFd <- handleToFd ch
       decryptedFd <- handleToFd dh
 
-      -- Use bob's key
       key <- getKey ctx bobPubFpr NoSecret
 
-      -- Create pipe
       (pipeRead, pipeWrite) <- createPipe
 
-      -- Write to pipe
-      -- Add plaintext content
       let testString = replicate 1000 '.'
       _ <- forkIO $ do
         threadWaitWrite pipeWrite
         _ <- fdWrite pipeWrite testString
         closeFd pipeWrite
 
-      -- Start encrypting in thread
       _ <- forkIO $ do
         threadWaitRead pipeRead
         _ <- encryptFd ctx [fromJust key] NoFlag pipeRead cipherFd
         closeFd pipeRead
 
-      -- Wait a second for threads to finish
       threadDelay (1000 * 1000)
 
-      -- Check result
       -- Recreate the cipher FD because it is closed (or something) from the encrypt command
       threadWaitRead cipherFd
       ch' <- openFile cp ReadWriteMode
       cipherFd' <- handleToFd ch'
 
-      -- Decrypt ciphertext
       resDec <- decryptFd ctx cipherFd' decryptedFd
       if resDec == Right ()
       then return ()
       else assertFailure $ show resDec
 
-      -- Compare plaintext and decrypted text
       decryptedtext <-readFile dp
       testString @=? decryptedtext
 

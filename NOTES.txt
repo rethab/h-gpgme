@@ -1,2 +1,0 @@
-How to Upload Package to Hackage:
-  - Use hup: https://hackage.haskell.org/package/hup

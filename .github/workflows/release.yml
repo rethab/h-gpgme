@@ -1,4 +1,5 @@
 name: Release
+run-name: release ${{ inputs.tag || github.ref_name }}${{ inputs.publish && ' (publish)' || ' (candidate)' }}
 
 # Tags are bare versions (0.6.3.0), matching the ones already on this repo.
 #
@@ -66,13 +67,10 @@ jobs:
           out='${{ runner.temp }}/packages'
           mkdir -p "$out"
 
-          # Naming the package as an sdist target selects its library component,
-          # which cabal refuses to package alone. A throwaway project file makes
-          # 'all' mean exactly this package and keeps the checked-in
-          # cabal.project.local (a local dev override) out of the release.
-          printf 'packages: .\n' > release.project
-          cabal sdist --project-file=release.project all --output-dir "$out"
-          rm -f release.project
+          # 'all' resolves through cabal.project to exactly this package. Naming
+          # the package instead would select its library component, which cabal
+          # refuses to package alone.
+          cabal sdist all --output-dir "$out"
 
           tarball="$out/h-gpgme-$version.tar.gz"
           if [ "$(ls -1 "$out" | wc -l)" -ne 1 ] || [ ! -f "$tarball" ]; then
@@ -89,7 +87,7 @@ jobs:
           packagesPath: ${{ steps.sdist.outputs.dir }}
           publish: ${{ inputs.publish || false }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: h-gpgme-${{ inputs.tag || github.ref_name }}
           path: ${{ steps.sdist.outputs.tarball }}
