@@ -10,6 +10,8 @@
 
 ### Bug fixes
 
+- fix: release the gpgme data buffer after import and export operations: https://github.com/rethab/h-gpgme/pull/70
+- fix: importKeyFromFile and importKeyFromBytes reported success instead of the actual error when the import operation failed: https://github.com/rethab/h-gpgme/pull/70
 - docs: fix reversed doc comments on IncludeSecret: https://github.com/rethab/h-gpgme/pull/68
 - fix(test): skip gpg-agent sockets when copying the key fixture, which broke removeAliceKey wherever GnuPG puts its sockets in the homedir: https://github.com/rethab/h-gpgme/pull/69
 

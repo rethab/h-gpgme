@@ -24,6 +24,7 @@ module Crypto.Gpgme.Key (
     ) where
 
 import Bindings.Gpgme
+import Control.Monad (when)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC8
 import Data.Time.Clock
@@ -117,7 +118,11 @@ importData :: Ctx -- ^ context to operate in
            -> (Ptr C'gpgme_data_t -> IO C'gpgme_error_t) -- ^ populate the buffer
            -> IO (Maybe GpgmeError)
 importData Ctx {_ctx=ctxPtr} populate = do
-  dataPtr <- newDataBuffer
+  -- the populate action allocates the data object itself, so it only
+  -- needs an empty cell; it is initialized to NULL because gpgme
+  -- leaves it untouched if populating fails
+  dataPtr <- malloc
+  poke dataPtr nullData
   ret <- populate dataPtr
   mGpgErr <-
     case ret of
@@ -128,10 +133,15 @@ importData Ctx {_ctx=ctxPtr} populate = do
           c'gpgme_op_import ctx dat
         pure $ if retIn == noError
           then Nothing
-          else Just $ GpgmeError ret
+          else Just $ GpgmeError retIn
       err -> pure $ Just $ GpgmeError err
+  dat <- peek dataPtr
+  when (dat /= nullData) $ c'gpgme_data_release dat
   free dataPtr
   pure mGpgErr
+  where
+    -- gpgme_data_t is bound as an integral type, so NULL is 0
+    nullData = 0 :: C'gpgme_data_t
 
 -- | Export the public key with the given @fingerprint@ from the
 --   @context@. Returns an empty 'BS.ByteString' if no key with
@@ -169,10 +179,16 @@ exportKeys Ctx {_ctx=ctxPtr} modes fprs = do
         withArray0 nullPtr cFprs $ \pats -> do
             ctx <- peek ctxPtr
             c'gpgme_op_export_ext ctx pats cMode dat
+    result <- if ret == noError
+        then do
+            -- collectResult is lazy: force the copy while the buffer
+            -- it reads from is still alive
+            let key = collectResult dat
+            key `seq` return (Right key)
+        else return (Left (GpgmeError ret))
+    c'gpgme_data_release dat
     free dataPtr
-    return $ if ret == noError
-        then Right (collectResult dat)
-        else Left (GpgmeError ret)
+    return result
   where
     cMode = foldl (\memo -> (memo .|.) . fromExportMode) 0 modes
 

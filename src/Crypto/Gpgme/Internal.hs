@@ -94,8 +94,9 @@ fromKeyListingMode KeyListingSigNotations = c'GPGME_KEYLIST_MODE_SIG_NOTATIONS
 fromKeyListingMode KeyListingValidate     = c'GPGME_KEYLIST_MODE_VALIDATE
 
 
--- bindings-gpgme does not bind the GPGME_EXPORT_MODE_* constants,
--- so their values are replicated from gpgme.h
+-- The GPGME_EXPORT_MODE_* values are replicated from gpgme.h:
+-- bindings-gpgme 0.1 does not bind these constants and 0.2 only
+-- binds the ones known to the gpgme version it was built against.
 fromExportMode :: ExportMode -> CUInt
 fromExportMode ExportMinimal      = 4   -- GPGME_EXPORT_MODE_MINIMAL
 fromExportMode ExportSecret       = 16  -- GPGME_EXPORT_MODE_SECRET
