@@ -31,9 +31,14 @@ newCtx homedir localeStr protocol =
 
        ctx <- peek ctxPtr
 
-       -- find engine version
-       engInfo <- c'gpgme_ctx_get_engine_info ctx >>= peek
-       engVersion <- peekCString $ c'_gpgme_engine_info'version engInfo
+       -- the version field is NULL when the engine binary is not installed
+       engInfoPtr <- c'gpgme_ctx_get_engine_info ctx
+       engVersion <- if engInfoPtr == nullPtr
+                        then return ""
+                        else do verPtr <- peek (p'_gpgme_engine_info'version engInfoPtr)
+                                if verPtr == nullPtr
+                                   then return ""
+                                   else peekCString verPtr
 
        -- set locale
        locale <- newCString localeStr

@@ -13,13 +13,19 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import Crypto.Gpgme.Types
 
+-- Fields are read via the p' accessors: peeking a whole C'_gpgme_invalid_key
+-- diverges because its Storable instance recursively peeks the mistyped
+-- @next@ field.
 collectFprs :: C'gpgme_invalid_key_t -> [InvalidKey]
-collectFprs result = unsafePerformIO $ peek result >>= go
-    where go :: C'_gpgme_invalid_key -> IO [InvalidKey]
-          go invalid = do
-            fpr <- peekCString (c'_gpgme_invalid_key'fpr invalid)
-            let reason = fromIntegral (c'_gpgme_invalid_key'reason invalid)
-            rest <- go (c'_gpgme_invalid_key'next invalid)
+collectFprs = unsafePerformIO . go
+    where go :: C'gpgme_invalid_key_t -> IO [InvalidKey]
+          go ptr | ptr == nullPtr = return []
+          go ptr = do
+            fprPtr <- peek (p'_gpgme_invalid_key'fpr ptr)
+            fpr <- if fprPtr == nullPtr then return "" else peekCString fprPtr
+            reason <- fromIntegral `fmap` peek (p'_gpgme_invalid_key'reason ptr)
+            next <- peek (castPtr (p'_gpgme_invalid_key'next ptr) :: Ptr C'gpgme_invalid_key_t)
+            rest <- go next
             return ((fpr, reason) : rest)
 
 -- | Read the buffer into a ByteString.
@@ -60,14 +66,17 @@ collectSignatures ctx = unsafePerformIO $ collectSignatures' ctx
 collectSignatures' :: C'gpgme_ctx_t -> IO VerificationResult
 collectSignatures' ctx = do
     verify_res <- c'gpgme_op_verify_result ctx
-    sigs <- peek $ p'_gpgme_op_verify_result'signatures verify_res
-    go sigs
+    -- NULL unless the last operation on the context was a successful verify
+    if verify_res == nullPtr
+        then return []
+        else go =<< peek (p'_gpgme_op_verify_result'signatures verify_res)
     where
         go sig | sig == nullPtr = return []
         go sig = do
             status <- peek $ p'_gpgme_signature'status sig
             summary <- peek $ p'_gpgme_signature'summary sig
-            fpr <- peek (p'_gpgme_signature'fpr sig) >>= BS.packCString
+            fprPtr <- peek (p'_gpgme_signature'fpr sig)
+            fpr <- if fprPtr == nullPtr then return BS.empty else BS.packCString fprPtr
             next <- peek $ p'_gpgme_signature'next sig
             xs <- go next
             return $ (GpgmeError status, toSignatureSummaries summary, fpr) : xs
