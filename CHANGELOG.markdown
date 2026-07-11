@@ -5,6 +5,19 @@
 ### New Features
 
 - feat: add importKeyFromBytes function: https://github.com/rethab/h-gpgme/pull/66
+- feat: support gpgme 2.x by allowing bindings-gpgme 0.2: https://github.com/rethab/h-gpgme/pull/69
+
+### Bug fixes
+
+- docs: fix reversed doc comments on IncludeSecret: https://github.com/rethab/h-gpgme/pull/68
+- fix(test): skip gpg-agent sockets when copying the key fixture, which broke removeAliceKey wherever GnuPG puts its sockets in the homedir: https://github.com/rethab/h-gpgme/pull/69
+
+### Maintenance
+
+- chore(ci): modernize CI with a real multi-GHC matrix, latest actions and hardened permissions: https://github.com/rethab/h-gpgme/pull/67
+- chore(ci): release to Hackage from a version tag: https://github.com/rethab/h-gpgme/pull/69
+- chore(ci): test against gpgme 1.x and 2.x, both built from source: https://github.com/rethab/h-gpgme/pull/69
+- chore: give every dependency a PVP upper bound: https://github.com/rethab/h-gpgme/pull/69
 
 ## 0.6.2.0
 

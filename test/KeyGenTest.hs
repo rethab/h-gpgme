@@ -18,6 +18,7 @@ import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Default
 import Data.List          ( isPrefixOf )
+import Data.Maybe         ( fromJust )
 import Data.ByteString.Char8    ( unpack )
 
 import            Crypto.Gpgme
@@ -118,7 +119,7 @@ genKey = do
 -- Other ExpireDate to string possibilities
 expireDateDays :: Assertion
 expireDateDays =
-  let (Just p) = G.toPositive 10
+  let p = fromJust $ G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireD p
         }
@@ -130,7 +131,7 @@ expireDateDays =
 
 expireDateWeeks :: Assertion
 expireDateWeeks =
-  let (Just p) = G.toPositive 10
+  let p = fromJust $ G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireW p
         }
@@ -142,7 +143,7 @@ expireDateWeeks =
 
 expireDateMonths :: Assertion
 expireDateMonths =
-  let (Just p) = G.toPositive 10
+  let p = fromJust $ G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireM p
         }
@@ -154,7 +155,7 @@ expireDateMonths =
 
 expireDateYears :: Assertion
 expireDateYears =
-  let (Just p) = G.toPositive 10
+  let p = fromJust $ G.toPositive 10
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireY p
         }
@@ -166,7 +167,7 @@ expireDateYears =
 
 expireDateSeconds :: Assertion
 expireDateSeconds =
-  let (Just p) = G.toPositive 123456
+  let p = fromJust $ G.toPositive 123456
       params = (def :: G.GenKeyParams) {
           G.expireDate = Just $ G.ExpireS p
         }
@@ -178,7 +179,7 @@ expireDateSeconds =
 
 creationDateSeconds :: Assertion
 creationDateSeconds =
-  let (Just p) = G.toPositive 123456
+  let p = fromJust $ G.toPositive 123456
       params = (def :: G.GenKeyParams) {
           G.creationDate = Just $ G.CreationS p
         }

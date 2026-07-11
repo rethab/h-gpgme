@@ -176,14 +176,14 @@ bobClearSignAndVerifySpecifyKeyPrompt = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
     key <- getKey ctx bobPubFpr NoSecret
     resSign <- sign ctx [fromJust key] Clear "Clear text message from bob specifying signing key"
-    verifyPlain ctx (fromRight resSign) ""
+    verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
 bobClearSignAndVerifyDefaultKeyPrompt :: Assertion
 bobClearSignAndVerifyDefaultKeyPrompt = do
   resVerify <- withCtx "test/bob/" "C" OpenPGP $ \ctx -> do
     resSign <- sign ctx [] Clear "Clear text message from bob with default key"
-    verifyPlain ctx (fromRight resSign) ""
+    verify ctx (fromRight resSign)
   assertBool "Could not verify bob's signature was correct" $ isVerifyValid resVerify
 
 bobNormalSignAndVerifySpecifyKeyPrompt :: Assertion

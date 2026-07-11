@@ -1,0 +1,95 @@
+name: Release
+
+# Tags are bare versions (0.6.3.0), matching the ones already on this repo.
+#
+# Uploads land as Hackage candidates. A version can be uploaded once and never
+# replaced or deleted, so promoting to a real release stays deliberate: review
+# the candidate page, then re-run with publish=true.
+#
+# Only the sdist goes up. Hackage builds the haddocks itself.
+
+on:
+  push:
+    tags:
+      - '[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. 0.6.3.0'
+        required: true
+        type: string
+      publish:
+        description: 'Publish for real instead of uploading a candidate'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    name: h-gpgme ${{ inputs.tag || github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.10'
+          cabal-version: 'latest'
+          cabal-update: true
+
+      - name: Check the tag against the cabal file
+        run: |
+          set -euo pipefail
+          version='${{ inputs.tag || github.ref_name }}'
+
+          # Hackage never lets a version be taken back, so a tag that disagrees
+          # with the .cabal file has to fail before anything is uploaded.
+          declared=$(sed -n 's/^[Vv]ersion:[[:space:]]*//p' h-gpgme.cabal | head -1 | tr -d '[:space:]')
+          if [ "$declared" != "$version" ]; then
+            echo "::error::Tag '$version' but h-gpgme.cabal declares $declared"
+            exit 1
+          fi
+
+      - name: Check the package
+        run: cabal check
+
+      - name: Build the source distribution
+        id: sdist
+        run: |
+          set -euo pipefail
+          version='${{ inputs.tag || github.ref_name }}'
+          out='${{ runner.temp }}/packages'
+          mkdir -p "$out"
+
+          # Naming the package as an sdist target selects its library component,
+          # which cabal refuses to package alone. A throwaway project file makes
+          # 'all' mean exactly this package and keeps the checked-in
+          # cabal.project.local (a local dev override) out of the release.
+          printf 'packages: .\n' > release.project
+          cabal sdist --project-file=release.project all --output-dir "$out"
+          rm -f release.project
+
+          tarball="$out/h-gpgme-$version.tar.gz"
+          if [ "$(ls -1 "$out" | wc -l)" -ne 1 ] || [ ! -f "$tarball" ]; then
+            echo "::error::Expected only h-gpgme-$version.tar.gz, got: $(ls "$out")"
+            exit 1
+          fi
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          echo "dir=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Hackage
+        uses: haskell-actions/hackage-publish@v1
+        with:
+          hackageToken: ${{ secrets.HACKAGE_AUTH_TOKEN }}
+          packagesPath: ${{ steps.sdist.outputs.dir }}
+          publish: ${{ inputs.publish || false }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h-gpgme-${{ inputs.tag || github.ref_name }}
+          path: ${{ steps.sdist.outputs.tarball }}

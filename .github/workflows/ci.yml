@@ -72,6 +72,155 @@ jobs:
 
       - run: stack --resolver ${{ matrix.resolver }} test --test-arguments='--pattern=!/NoCi/'
 
+  # swdb.lst is signed, and it is fetched over the network, so it is verified
+  # against pinned keys rather than trusted on transport security alone. The
+  # fingerprints match https://gnupg.org/signature_key.html; if GnuPG rotates
+  # keys, this job fails until the .asc is refreshed from there.
+  gpgme-versions:
+    name: resolve gpgme versions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.resolve.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve latest gpgme 1.x and 2.x
+        id: resolve
+        run: |
+          set -euo pipefail
+          curl -fsS -o swdb.lst https://versions.gnupg.org/swdb.lst
+          curl -fsS -o swdb.lst.sig https://versions.gnupg.org/swdb.lst.sig
+          gpg --dearmor < .github/gnupg-release-keys.asc > keyring.gpg
+          gpgv --keyring ./keyring.gpg swdb.lst.sig swdb.lst
+
+          v1=$(awk '$1 == "gpgme1_ver"  { print $2 }' swdb.lst)
+          s1=$(awk '$1 == "gpgme1_sha2" { print $2 }' swdb.lst)
+          v2=$(awk '$1 == "gpgme_ver"   { print $2 }' swdb.lst)
+          s2=$(awk '$1 == "gpgme_sha2"  { print $2 }' swdb.lst)
+          case "$v1" in 1.*) ;; *) echo "unexpected gpgme 1.x version: '$v1'" >&2; exit 1 ;; esac
+          case "$v2" in 2.*) ;; *) echo "unexpected gpgme 2.x version: '$v2'" >&2; exit 1 ;; esac
+          test -n "$s1" && test -n "$s2"
+
+          echo "matrix=[{\"version\":\"$v1\",\"sha256\":\"$s1\",\"series\":\"1\"},{\"version\":\"$v2\",\"sha256\":\"$s2\",\"series\":\"2\"}]" >> "$GITHUB_OUTPUT"
+
+  # gpgme 2.0 removed the trust item API (deprecated since 1.14). h-gpgme never
+  # used it, but bindings-gpgme did, so only bindings-gpgme >= 0.2 compiles
+  # against the 2.x series. Ubuntu ships only 1.18, which cannot show that
+  # difference, so the latest release of each series is built from source and
+  # exercised as its own leg.
+  gpgme:
+    name: gpgme ${{ matrix.gpgme.version }}
+    runs-on: ubuntu-latest
+    needs: gpgme-versions
+    strategy:
+      fail-fast: false
+      matrix:
+        gpgme: ${{ fromJSON(needs.gpgme-versions.outputs.matrix) }}
+
+    env:
+      GPGME_PREFIX: ${{ github.workspace }}/gpgme-install
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install gpgme build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpg-error-dev libassuan-dev pkg-config
+
+      - name: Cache gpgme ${{ matrix.gpgme.version }}
+        id: cache-gpgme
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.GPGME_PREFIX }}
+          key: ${{ runner.os }}-gpgme-lib-${{ matrix.gpgme.version }}
+
+      - name: Build gpgme ${{ matrix.gpgme.version }}
+        if: steps.cache-gpgme.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSLO https://gnupg.org/ftp/gcrypt/gpgme/gpgme-${{ matrix.gpgme.version }}.tar.bz2
+          echo "${{ matrix.gpgme.sha256 }}  gpgme-${{ matrix.gpgme.version }}.tar.bz2" | sha256sum -c -
+          tar xjf gpgme-${{ matrix.gpgme.version }}.tar.bz2
+          cd gpgme-${{ matrix.gpgme.version }}
+          ./configure --prefix="$GPGME_PREFIX"
+          make -j"$(nproc)"
+          make install
+
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.10'
+          cabal-version: 'latest'
+          cabal-update: true
+
+      - name: Cache cabal store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: ${{ runner.os }}-gpgme-${{ matrix.gpgme.series }}-${{ hashFiles('h-gpgme.cabal') }}
+          restore-keys: ${{ runner.os }}-gpgme-${{ matrix.gpgme.series }}-
+
+      # Only bindings-gpgme >= 0.2 builds against gpgme 2.x. Constraining the
+      # solver makes a missing 0.2 a legible "no version fits" error instead of
+      # a C compile failure deep inside bindings-gpgme.
+      - name: Test against gpgme ${{ matrix.gpgme.version }}
+        env:
+          LD_LIBRARY_PATH: ${{ env.GPGME_PREFIX }}/lib
+        run: |
+          set -euo pipefail
+          args=()
+          if [ '${{ matrix.gpgme.series }}' = '2' ]; then
+            args+=(--constraint='bindings-gpgme >= 0.2')
+          fi
+
+          # bindings-gpgme is the package that includes gpgme.h, and it is a
+          # dependency rather than a project member, so the paths to the gpgme
+          # we just built have to reach it through a package stanza --
+          # --extra-include-dirs on the command line only ever reaches '.'.
+          cat > ci.project <<PROJECT
+          packages: .
+
+          package bindings-gpgme
+            extra-include-dirs: $GPGME_PREFIX/include
+            extra-lib-dirs: $GPGME_PREFIX/lib
+          PROJECT
+
+          cabal test --project-file=ci.project "${args[@]}" \
+            --test-show-details=direct \
+            --test-options='--pattern=!/NoCi/'
+
+  # A package that cannot be packaged cannot be released, and Hackage takes a
+  # version only once. Both failures are cheap here and permanent after a tag
+  # push, so the release path is exercised on every PR. Neither cabal check nor
+  # cabal sdist resolves dependencies or runs pkg-config, so this needs no
+  # libgpgme.
+  publishable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.10'
+          cabal-version: 'latest'
+          cabal-update: true
+
+      - name: Check and package
+        run: |
+          set -euo pipefail
+          cabal check
+
+          # Naming the package as an sdist target selects its library component,
+          # which cabal refuses to package alone. A throwaway project file makes
+          # 'all' mean exactly this package and keeps the checked-in
+          # cabal.project.local (a local dev override) out of the release.
+          printf 'packages: .\n' > release.project
+          cabal sdist --project-file=release.project all --output-dir "$RUNNER_TEMP/sdist"
+
+          version=$(sed -n 's/^[Vv]ersion:[[:space:]]*//p' h-gpgme.cabal | head -1 | tr -d '[:space:]')
+          test -f "$RUNNER_TEMP/sdist/h-gpgme-$version.tar.gz"
+
   docs:
     runs-on: ubuntu-latest
     steps:
