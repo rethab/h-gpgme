@@ -7,7 +7,7 @@ license:             MIT
 license-file:        LICENSE
 author:              Reto
 maintainer:          rethab@protonmail.com
-copyright:           (c) Reto 2022
+copyright:           (c) 2014-2026 Reto
 homepage:            https://github.com/rethab/h-gpgme
 bug-reports:         https://github.com/rethab/h-gpgme/issues
 category:            Cryptography
