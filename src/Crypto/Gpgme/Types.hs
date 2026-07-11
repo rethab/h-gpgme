@@ -103,10 +103,10 @@ allocKey = do
 withKeyPtr :: Key -> (Ptr C'gpgme_key_t -> IO a) -> IO a
 withKeyPtr (Key fPtr) = withForeignPtr fPtr
 
--- | Whether to include secret keys when searching
+-- | Whether to restrict an operation to secret keys
 data IncludeSecret =
-      WithSecret -- ^ do not include secret keys
-    | NoSecret   -- ^ include secret keys
+      WithSecret -- ^ only consider secret keys
+    | NoSecret   -- ^ do not consider secret keys
     deriving (Show, Eq, Ord)
 
 data Flag =

@@ -32,13 +32,13 @@ import Crypto.Gpgme.Internal
 
 -- | Returns a list of all known 'Key's from the @context@.
 listKeys :: Ctx            -- ^ context to operate in
-         -> IncludeSecret  -- ^ whether to include the secrets
+         -> IncludeSecret  -- ^ whether to restrict to secret keys
          -> IO [Key]
 listKeys ctx secret = listKeys' ctx secret nullPtr
 
 -- | Returns a list of known 'Key's from the @context@ that match a given pattern.
 searchKeys :: Ctx            -- ^ context to operate in
-           -> IncludeSecret  -- ^ whether to include the secrets
+           -> IncludeSecret  -- ^ whether to restrict to secret keys
            -> String         -- ^ The pattern to look for; It is typically
                              -- matched against the user ids of a key.
            -> IO [Key]
@@ -46,7 +46,7 @@ searchKeys ctx secret pat = BS.useAsCString (BSC8.pack pat) (listKeys' ctx secre
 
 -- | Internal helper function used by both `listKeys` and `searchKeys`.
 listKeys' :: Ctx            -- ^ context to operate in
-          -> IncludeSecret  -- ^ whether to include the secrets
+          -> IncludeSecret  -- ^ whether to restrict to secret keys
           -> CString        -- ^ The pattern to look for; It is typically
                             -- matched against the user ids of a key.
           -> IO [Key]
@@ -69,7 +69,7 @@ listKeys' Ctx {_ctx=ctxPtr} secret pat = do
 --   Returns 'Nothing' if no 'Key' with this 'Fpr' exists.
 getKey :: Ctx           -- ^ context to operate in
        -> Fpr           -- ^ fingerprint
-       -> IncludeSecret -- ^ whether to include secrets when searching for the key
+       -> IncludeSecret -- ^ whether to look for a secret key
        -> IO (Maybe Key)
 getKey Ctx {_ctx=ctxPtr} fpr secret = do
     key <- allocKey
