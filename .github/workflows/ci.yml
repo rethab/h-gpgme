@@ -72,6 +72,37 @@ jobs:
 
       - run: stack --resolver ${{ matrix.resolver }} test --test-arguments='--pattern=!/NoCi/'
 
+  # A package that cannot be packaged cannot be released, and Hackage takes a
+  # version only once. Both failures are cheap here and permanent after a tag
+  # push, so the release path is exercised on every PR. Neither cabal check nor
+  # cabal sdist resolves dependencies or runs pkg-config, so this needs no
+  # libgpgme.
+  publishable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.10'
+          cabal-version: 'latest'
+          cabal-update: true
+
+      - name: Check and package
+        run: |
+          set -euo pipefail
+          cabal check
+
+          # Naming the package as an sdist target selects its library component,
+          # which cabal refuses to package alone. A throwaway project file makes
+          # 'all' mean exactly this package and keeps the checked-in
+          # cabal.project.local (a local dev override) out of the release.
+          printf 'packages: .\n' > release.project
+          cabal sdist --project-file=release.project all --output-dir "$RUNNER_TEMP/sdist"
+
+          version=$(sed -n 's/^[Vv]ersion:[[:space:]]*//p' h-gpgme.cabal | head -1 | tr -d '[:space:]')
+          test -f "$RUNNER_TEMP/sdist/h-gpgme-$version.tar.gz"
+
   docs:
     runs-on: ubuntu-latest
     steps:
