@@ -27,15 +27,10 @@ import TestUtil
 -- The tests supply it through a passphrase callback, which puts gpgme into
 -- loopback pinentry mode, so no test asks a human for anything.
 --
--- Two tests carry a @NoCi@ marker and are skipped on CI:
---
---   * 'bobEncryptForAliceDecrypt' @False@ is deliberately callback-free, to
---     cover the path where the passphrase comes from the gpg-agent's own
---     pinentry. It is the only test that wants a human.
---
---   * 'bobEncryptSymmetrically' segfaults the process when it runs alongside a
---     test that decrypts with a passphrase callback, single-threaded or not,
---     while passing on its own. That is a bug in the library, not in the test.
+-- The exception is 'bobEncryptForAliceDecrypt' @False@: it is deliberately
+-- callback-free, to cover the path where the passphrase comes from the
+-- gpg-agent's own pinentry. It carries a @NoCi@ marker because it wants a
+-- human.
 tests :: IO TestTree
 tests = do
     cbSupported <- withCtx "test/bob" "C" OpenPGP $ \ctx ->
@@ -62,7 +57,7 @@ passphraseCbTests =
     , testProperty "bobEncryptSignForAliceDecryptVerify"
                    $ bobEncryptSignForAliceDecryptVerify True
 
-    , testCase "bobEncryptSymmetricallySegfaultsNoCi" bobEncryptSymmetrically
+    , testCase "bobEncryptSymmetricallyNoCi" bobEncryptSymmetrically
     , testCase "bobDetachSignAndVerifySpecifyKey" bobDetachSignAndVerifySpecifyKey
     , testCase "bobClearSignAndVerifySpecifyKey" bobClearSignAndVerifySpecifyKey
     , testCase "bobClearSignAndVerifyDefaultKey" bobClearSignAndVerifyDefaultKey

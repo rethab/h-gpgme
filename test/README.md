@@ -28,11 +28,6 @@ cabal test                                              # everything
 cabal test --test-options='--pattern=!/NoCi/'           # what CI runs
 ```
 
-Two tests carry a `NoCi` marker and are skipped in CI:
-
-- `bobEncryptForAliceDecryptPromptNoCi` sets no passphrase callback on purpose,
-  so gpg-agent asks for the passphrase itself. It is the only test that wants a
-  human, and it covers the pinentry path the other tests bypass.
-- `bobEncryptSymmetricallySegfaultsNoCi` passes on its own but segfaults the
-  process when it runs alongside a test that decrypts through a passphrase
-  callback. That is a bug in the library, not in the test.
+Tests with a `NoCi` marker are skipped in CI. `bobEncryptForAliceDecryptPromptNoCi`
+sets no passphrase callback on purpose, so gpg-agent asks for the passphrase
+itself: it covers the pinentry path the other tests bypass.

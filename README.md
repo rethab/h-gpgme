@@ -93,9 +93,8 @@ authority — h-gpgme's names follow it closely.
 
 ## Contributing
 
-Issues and pull requests are welcome. `cabal test` runs the suite; the two tests
-that cannot run unattended are marked `NoCi` and skipped in CI with
-`--test-options='--pattern=!/NoCi/'`. [test/README.md](test/README.md) describes
+Issues and pull requests are welcome. `cabal test` runs the suite; tests
+marked `NoCi` are skipped in CI with `--test-options='--pattern=!/NoCi/'`. [test/README.md](test/README.md) describes
 the test keyrings, and [RELEASE.md](RELEASE.md) how a release is cut.
 
 [Changelog](CHANGELOG.md) · [License](LICENSE) (MIT)
