@@ -87,12 +87,11 @@ bobEncryptForAliceDecrypt passphrCb plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
+            do
                Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> runMaybeT $ do
                    aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
                    hush $ encrypt bCtx [aPubKey] NoFlag plain
 
-               -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
                    when passphrCb $ withPassphraseCb "alice123" aCtx
                    decrypt aCtx enc
@@ -105,10 +104,9 @@ carolEncryptForCarolDecryptShort plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
+            do
                enc <- encrypt' "test/carol" carolPubFpr plain
 
-               -- decrypt
                dec <- decrypt' "test/carol" (fromRight enc)
 
                return $ fromRight dec
@@ -119,7 +117,7 @@ bobEncryptSignForAliceDecryptVerify passphrCb plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
+            do
                Just enc <- withCtx "test/bob" "C" OpenPGP $ \bCtx -> do
                    -- signing unlocks Bob's secret key, so this side needs the
                    -- passphrase as well
@@ -128,7 +126,6 @@ bobEncryptSignForAliceDecryptVerify passphrCb plain =
                        aPubKey <- MaybeT $ getKey bCtx alicePubFpr NoSecret
                        hush $ encryptSign bCtx [aPubKey] NoFlag plain
 
-               -- decrypt
                dec <- withCtx "test/alice" "C" OpenPGP $ \aCtx -> do
                    when passphrCb $ withPassphraseCb "alice123" aCtx
                    decryptVerify aCtx enc
@@ -141,10 +138,9 @@ carolEncryptSignForCarolDecryptVerifyShort plain =
         dec <- run encrAndDecr
         assert $ dec == plain
   where encrAndDecr =
-            do -- encrypt
+            do
                enc <- encryptSign' "test/carol" carolPubFpr plain
 
-               -- decrypt
                dec <- decryptVerify' "test/carol" (fromRight enc)
 
                return $ fromRight dec
@@ -165,14 +161,12 @@ decryptGarbage = do
 bobEncryptSymmetrically :: Assertion
 bobEncryptSymmetrically = do
 
-        -- encrypt
         cipher <- fmap fromRight $
                     withCtx "test/bob" "C" OpenPGP $ \ctx -> do
                         withPassphraseCb symmetricPassphrase ctx
                         encrypt ctx [] NoFlag "plaintext"
         assertBool "must not be plain" (cipher /= "plaintext")
 
-        -- decrypt
         plain <- fmap fromRight $
                     withCtx "test/alice" "C" OpenPGP $ \ctx -> do
                         withPassphraseCb symmetricPassphrase ctx
@@ -239,10 +233,8 @@ encryptFile =
 
       key <- getKey ctx bobPubFpr NoSecret
 
-      -- Add plaintext content
       writeFile pp "Plaintext contents. 1234go!"
 
-      -- Encrypt plaintext
       resEnc <- encryptFd ctx [fromJust key] NoFlag plainFd cipherFd
       if resEnc == Right ()
       then return ()
@@ -252,13 +244,11 @@ encryptFile =
       cipherHandle' <- openFile cp ReadWriteMode
       cipherFd' <- handleToFd cipherHandle'
 
-      -- Decrypt ciphertext
       resDec <- decryptFd ctx cipherFd' decryptedFd
       if resDec == Right ()
       then return ()
       else assertFailure $ show resDec
 
-      -- Compare plaintext and decrypted text
       plaintext <- readFile pp
       decryptedtext <- readFile dp
       plaintext @=? decryptedtext
@@ -273,42 +263,33 @@ encryptStream =
       cipherFd <- handleToFd ch
       decryptedFd <- handleToFd dh
 
-      -- Use bob's key
       key <- getKey ctx bobPubFpr NoSecret
 
-      -- Create pipe
       (pipeRead, pipeWrite) <- createPipe
 
-      -- Write to pipe
-      -- Add plaintext content
       let testString = replicate 1000 '.'
       _ <- forkIO $ do
         threadWaitWrite pipeWrite
         _ <- fdWrite pipeWrite testString
         closeFd pipeWrite
 
-      -- Start encrypting in thread
       _ <- forkIO $ do
         threadWaitRead pipeRead
         _ <- encryptFd ctx [fromJust key] NoFlag pipeRead cipherFd
         closeFd pipeRead
 
-      -- Wait a second for threads to finish
       threadDelay (1000 * 1000)
 
-      -- Check result
       -- Recreate the cipher FD because it is closed (or something) from the encrypt command
       threadWaitRead cipherFd
       ch' <- openFile cp ReadWriteMode
       cipherFd' <- handleToFd ch'
 
-      -- Decrypt ciphertext
       resDec <- decryptFd ctx cipherFd' decryptedFd
       if resDec == Right ()
       then return ()
       else assertFailure $ show resDec
 
-      -- Compare plaintext and decrypted text
       decryptedtext <-readFile dp
       testString @=? decryptedtext
 

@@ -116,8 +116,6 @@ removeAliceKey :: Assertion
 removeAliceKey = do
   tmpDir <- createTemporaryTestDir "removeAliceKey"
 
-  -- Copy alice's homedir into a temporary directory so we can safely remove her
-  -- key from it
   let aliceTmpDir = tmpDir </> "alice"
   copyGpgHomedir "test/alice" aliceTmpDir
 
@@ -130,7 +128,6 @@ removeAliceKey = do
        endNum @?= 0
        ret @?= Nothing
 
-  -- Cleanup test
   removeDirectoryRecursive tmpDir
 
 readFromFileWorks :: Assertion
