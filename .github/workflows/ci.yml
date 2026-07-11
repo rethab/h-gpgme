@@ -34,43 +34,68 @@ jobs:
         with:
           fail-on: 'warning'
 
+  # The GHC versions here are the ones h-gpgme.cabal claims in tested-with, and
+  # they resolve against the dependency bounds the .cabal file declares -- which
+  # is what someone installing from Hackage gets. A Stackage snapshot would pin
+  # one blessed version of every dependency instead, and so could stay green
+  # while the declared bounds rotted.
   test:
     runs-on: ubuntu-latest
-    name: test ${{ matrix.resolver }}
+    name: ghc ${{ matrix.ghc }}
     strategy:
       fail-fast: false
       matrix:
-        # Each resolver pins a distinct GHC, spanning the oldest still-reasonable
-        # compiler up to the latest Stackage LTS:
-        #   lts-18.28 -> GHC 8.10.7   lts-22.44 -> GHC 9.6.6
-        #   lts-20.26 -> GHC 9.2.8    lts-23.28 -> GHC 9.8.4
-        #   lts-21.25 -> GHC 9.4.8    lts-24.49 -> GHC 9.10.3
-        resolver:
-          - lts-18.28
-          - lts-20.26
-          - lts-21.25
-          - lts-22.44
-          - lts-23.28
-          - lts-24.49
+        ghc:
+          - '8.10.7'
+          - '9.2.8'
+          - '9.4.8'
+          - '9.6.6'
+          - '9.8.4'
+          - '9.10.3'
     steps:
       - run: sudo apt-get install -y libgpgme-dev
       - uses: actions/checkout@v7
       - uses: haskell-actions/setup@v2
+        id: setup
         with:
-          enable-stack: true
-          stack-no-global: true
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: 'latest'
+          cabal-update: true
 
-      - name: Cache stack
+      - name: Cache cabal store
         uses: actions/cache@v6
         with:
-          path: |
-            ~/.stack
-            .stack-work
-          key: ${{ runner.os }}-stack-${{ matrix.resolver }}-${{ hashFiles('stack.yaml', 'h-gpgme.cabal') }}
-          restore-keys: |
-            ${{ runner.os }}-stack-${{ matrix.resolver }}-
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: ${{ runner.os }}-ghc-${{ matrix.ghc }}-${{ hashFiles('h-gpgme.cabal') }}
+          restore-keys: ${{ runner.os }}-ghc-${{ matrix.ghc }}-
 
-      - run: stack --resolver ${{ matrix.resolver }} test --test-arguments='--pattern=!/NoCi/'
+      - run: cabal test --test-show-details=direct --test-options='--pattern=!/NoCi/'
+
+  # The lower bounds in h-gpgme.cabal are a promise to anyone whose build plan is
+  # pinned to older packages, and nothing else here would notice if they drifted:
+  # every other job takes the newest version that fits. Only the library is built
+  # this way -- the test-only dependencies are nobody's problem but ours.
+  oldest-bounds:
+    name: oldest dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install -y libgpgme-dev
+      - uses: actions/checkout@v7
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '8.10.7'
+          cabal-version: 'latest'
+          cabal-update: true
+
+      - name: Cache cabal store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: ${{ runner.os }}-oldest-${{ hashFiles('h-gpgme.cabal') }}
+          restore-keys: ${{ runner.os }}-oldest-
+
+      - run: cabal build --prefer-oldest lib:h-gpgme
 
   # swdb.lst is signed, and it is fetched over the network, so it is verified
   # against pinned keys rather than trusted on transport security alone. The
@@ -211,34 +236,33 @@ jobs:
           set -euo pipefail
           cabal check
 
-          # Naming the package as an sdist target selects its library component,
-          # which cabal refuses to package alone. A throwaway project file makes
-          # 'all' mean exactly this package and keeps the checked-in
-          # cabal.project.local (a local dev override) out of the release.
-          printf 'packages: .\n' > release.project
-          cabal sdist --project-file=release.project all --output-dir "$RUNNER_TEMP/sdist"
+          # 'all' resolves through cabal.project to exactly this package. Naming
+          # the package instead would select its library component, which cabal
+          # refuses to package alone.
+          cabal sdist all --output-dir "$RUNNER_TEMP/sdist"
 
-          version=$(sed -n 's/^[Vv]ersion:[[:space:]]*//p' h-gpgme.cabal | head -1 | tr -d '[:space:]')
+          version=$(sed -n 's/^version:[[:space:]]*//p' h-gpgme.cabal | head -1 | tr -d '[:space:]')
           test -f "$RUNNER_TEMP/sdist/h-gpgme-$version.tar.gz"
 
+  # Hackage builds the haddocks itself, and a package whose docs do not build
+  # shows up there as a permanent gap. Cheaper to catch on the PR.
   docs:
     runs-on: ubuntu-latest
     steps:
       - run: sudo apt-get install -y libgpgme-dev
       - uses: actions/checkout@v7
       - uses: haskell-actions/setup@v2
+        id: setup
         with:
-          enable-stack: true
-          stack-no-global: true
+          ghc-version: '9.10'
+          cabal-version: 'latest'
+          cabal-update: true
 
-      - name: Cache stack
+      - name: Cache cabal store
         uses: actions/cache@v6
         with:
-          path: |
-            ~/.stack
-            .stack-work
-          key: ${{ runner.os }}-stack-docs-${{ hashFiles('stack.yaml', 'h-gpgme.cabal') }}
-          restore-keys: |
-            ${{ runner.os }}-stack-docs-
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: ${{ runner.os }}-docs-${{ hashFiles('h-gpgme.cabal') }}
+          restore-keys: ${{ runner.os }}-docs-
 
-      - run: stack --resolver lts-24.49 haddock --no-haddock-deps
+      - run: cabal haddock --haddock-for-hackage lib:h-gpgme

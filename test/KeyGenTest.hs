@@ -33,8 +33,8 @@ tests = [ testCase "allGenKeyParameters" allGenKeyParameters
         , testCase "expireDateYears" expireDateYears
         , testCase "expireDateSeconds" expireDateSeconds
         , testCase "creationDateSeconds" creationDateSeconds
-        , testCase "genKeyNoCi" genKey
-        , testCase "progressCallbackNoCi" progressCallback
+        , testCase "genKey" genKey
+        , testCase "progressCallback" progressCallback
         ]
 
 -- For getting values from Either
